@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:flowable="http://flowable.org/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="special-chars-process" name="Process with Special Chars &amp; Symbols ©®™" isExecutable="true">
+    <bpmn:startEvent id="start-1" name="开始 🎯">
+      <bpmn:outgoing>flow-1</bpmn:outgoing>
+      <bpmn:outgoing>flow-2</bpmn:outgoing>
+      <bpmn:outgoing>flow-3</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="task-quotes" name="Task with 'quotes' and &quot;double quotes&quot;" flowable:assignee="${userO'Brien}">
+      <bpmn:documentation>Use &quot;quotes&quot; and 'apostrophes' freely. Test: &quot;value's&quot;</bpmn:documentation>
+      <bpmn:incoming>flow-1</bpmn:incoming>
+      <bpmn:outgoing>flow-4</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="task-unicode" name="Unicode: 你好世界 🌍 مرحبا" flowable:assignee="${国际用户}">
+      <bpmn:documentation>Support for UTF-8: é ñ ü ö ø æ © ®™ ℠ § ¶ † ‡ •</bpmn:documentation>
+      <bpmn:incoming>flow-2</bpmn:incoming>
+      <bpmn:outgoing>flow-5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="task-emojis" name="Process with Emojis 🎉🚀✨💼📊" flowable:class="com.example.EmojiProcessor">
+      <bpmn:documentation>Emoji test: 😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇</bpmn:documentation>
+      <bpmn:incoming>flow-3</bpmn:incoming>
+      <bpmn:outgoing>flow-6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="task-mixed" name="Mix: &quot;&lt;script&gt;&amp;'&lt;&gt;©&quot;" flowable:assignee="${user&quot;test'&lt;&gt;&amp;}">
+      <bpmn:documentation>Mixed special chars: &lt;tag&gt; &amp;amp; &amp;quot; &amp;apos; &amp;lt; &amp;gt;</bpmn:documentation>
+      <bpmn:incoming>flow-4</bpmn:incoming>
+      <bpmn:incoming>flow-5</bpmn:incoming>
+      <bpmn:incoming>flow-6</bpmn:incoming>
+      <bpmn:outgoing>flow-7</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="end-1" name="完成 ✓">
+      <bpmn:incoming>flow-7</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="flow-1" name="Route 'A' with &quot;quotes&quot;" sourceRef="start-1" targetRef="task-quotes">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${choice == 'A' || choice == "B"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-2" name="Route: 你好 🇨🇳" sourceRef="start-1" targetRef="task-unicode">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${language == '中文'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-3" name="Emoji route 🚀" sourceRef="start-1" targetRef="task-emojis">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${hasEmoji == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-4" sourceRef="task-quotes" targetRef="task-mixed" />
+    <bpmn:sequenceFlow id="flow-5" sourceRef="task-unicode" targetRef="task-mixed" />
+    <bpmn:sequenceFlow id="flow-6" sourceRef="task-emojis" targetRef="task-mixed" />
+    <bpmn:sequenceFlow id="flow-7" name="Final &quot;complete&quot; ✅" sourceRef="task-mixed" targetRef="end-1" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="special-chars-process">
+      <bpmndi:BPMNShape id="Shape_start-1" bpmnElement="start-1">
+        <dc:Bounds x="100" y="150" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-quotes" bpmnElement="task-quotes">
+        <dc:Bounds x="250" y="50" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-unicode" bpmnElement="task-unicode">
+        <dc:Bounds x="250" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-emojis" bpmnElement="task-emojis">
+        <dc:Bounds x="250" y="250" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-mixed" bpmnElement="task-mixed">
+        <dc:Bounds x="450" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_end-1" bpmnElement="end-1">
+        <dc:Bounds x="650" y="150" width="50" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:flowable="http://flowable.org/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="parallel-merge-process" name="Parallel Merge Process" isExecutable="true">
+    <bpmn:startEvent id="start-1" name="Start">
+      <bpmn:outgoing>flow-1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:parallelGateway id="fork-gateway" name="Fork">
+      <bpmn:incoming>flow-1</bpmn:incoming>
+      <bpmn:outgoing>flow-2</bpmn:outgoing>
+      <bpmn:outgoing>flow-3</bpmn:outgoing>
+      <bpmn:outgoing>flow-4</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="task-parallel-1" name="Parallel Task 1" flowable:class="com.example.ParallelTask1" flowable:async="true">
+      <bpmn:incoming>flow-2</bpmn:incoming>
+      <bpmn:outgoing>flow-5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="task-parallel-2" name="Parallel Task 2" flowable:class="com.example.ParallelTask2" flowable:async="true">
+      <bpmn:incoming>flow-3</bpmn:incoming>
+      <bpmn:outgoing>flow-6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="task-parallel-3" name="Parallel Task 3" flowable:class="com.example.ParallelTask3" flowable:async="true">
+      <bpmn:incoming>flow-4</bpmn:incoming>
+      <bpmn:outgoing>flow-7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:parallelGateway id="merge-gateway" name="Merge">
+      <bpmn:incoming>flow-5</bpmn:incoming>
+      <bpmn:incoming>flow-6</bpmn:incoming>
+      <bpmn:incoming>flow-7</bpmn:incoming>
+      <bpmn:outgoing>flow-8</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:userTask id="task-final" name="Final Task" flowable:assignee="${manager}">
+      <bpmn:incoming>flow-8</bpmn:incoming>
+      <bpmn:outgoing>flow-9</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="end-1" name="End">
+      <bpmn:incoming>flow-9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="flow-1" sourceRef="start-1" targetRef="fork-gateway" />
+    <bpmn:sequenceFlow id="flow-2" sourceRef="fork-gateway" targetRef="task-parallel-1" />
+    <bpmn:sequenceFlow id="flow-3" sourceRef="fork-gateway" targetRef="task-parallel-2" />
+    <bpmn:sequenceFlow id="flow-4" sourceRef="fork-gateway" targetRef="task-parallel-3" />
+    <bpmn:sequenceFlow id="flow-5" sourceRef="task-parallel-1" targetRef="merge-gateway" />
+    <bpmn:sequenceFlow id="flow-6" sourceRef="task-parallel-2" targetRef="merge-gateway" />
+    <bpmn:sequenceFlow id="flow-7" sourceRef="task-parallel-3" targetRef="merge-gateway" />
+    <bpmn:sequenceFlow id="flow-8" sourceRef="merge-gateway" targetRef="task-final" />
+    <bpmn:sequenceFlow id="flow-9" sourceRef="task-final" targetRef="end-1" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="parallel-merge-process">
+      <bpmndi:BPMNShape id="Shape_start-1" bpmnElement="start-1">
+        <dc:Bounds x="100" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_fork-gateway" bpmnElement="fork-gateway">
+        <dc:Bounds x="250" y="200" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-parallel-1" bpmnElement="task-parallel-1">
+        <dc:Bounds x="450" y="100" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-parallel-2" bpmnElement="task-parallel-2">
+        <dc:Bounds x="450" y="200" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-parallel-3" bpmnElement="task-parallel-3">
+        <dc:Bounds x="450" y="300" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_merge-gateway" bpmnElement="merge-gateway">
+        <dc:Bounds x="650" y="200" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-final" bpmnElement="task-final">
+        <dc:Bounds x="800" y="200" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_end-1" bpmnElement="end-1">
+        <dc:Bounds x="1000" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

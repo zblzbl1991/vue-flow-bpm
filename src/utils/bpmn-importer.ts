@@ -24,7 +24,9 @@ const BPMN_TYPE_MAPPING: Record<string, BpmnElementType> = {
   'bpmn:UserTask': 'userTask',
   'bpmn:ServiceTask': 'serviceTask',
   'bpmn:ExclusiveGateway': 'exclusiveGateway',
-  'bpmn:ParallelGateway': 'parallelGateway'
+  'bpmn:ParallelGateway': 'parallelGateway',
+  'bpmn:SubProcess': 'subProcess',
+  'bpmn:SubProcess:Boundary': 'subProcessBoundary'
 }
 
 // Supported BPMN element types
@@ -57,6 +59,7 @@ interface DiInfo {
   id: string
   bpmnElement: string
   bounds?: { x: number; y: number; width: number; height: number }
+  isExpanded?: boolean
 }
 
 /**
@@ -106,27 +109,28 @@ export async function importBpmnXml(xml: string): Promise<BpmnImportResult> {
     const diInfos = extractDiInfo(definitions)
 
     // Extract BPMN elements (flow nodes)
-    const flowElements = process.flowElements || []
+    // Process expanded subProcesses recursively
+    const { flowNodes, sequenceFlows, subProcessBoundaries } = extractFlowElements(process, diInfos, warnings)
 
-    // Separate nodes and sequence flows
-    const flowNodes: any[] = []
-    const sequenceFlows: any[] = []
-
-    flowElements.forEach((element: any) => {
-      if (element.$type === 'bpmn:SequenceFlow') {
-        sequenceFlows.push(element)
-      } else if (SUPPORTED_ELEMENT_TYPES.has(element.$type)) {
-        flowNodes.push(element)
-      } else if (element.$type && element.$type.startsWith('bpmn:')) {
-        warnings.push(`Unsupported element type: ${element.$type} (id: ${element.id})`)
-      }
+    // Create a map for subProcess boundary info (for edge redirection)
+    const subProcessInfoMap = new Map<string, { internalStart?: string; internalEnd?: string; bounds?: any }>()
+    subProcessBoundaries.forEach((sp: any) => {
+      subProcessInfoMap.set(sp.id, {
+        internalStart: sp._internalStart,
+        internalEnd: sp._internalEnd,
+        bounds: sp._bounds
+      })
     })
 
     // Convert flow nodes to vue-flow nodes
     const nodes = convertFlowNodesToNodes(flowNodes, diInfos)
 
-    // Convert sequence flows to vue-flow edges
-    const edges = convertSequenceFlowsToEdges(sequenceFlows)
+    // Add subProcess boundary nodes
+    const boundaryNodes = convertSubProcessBoundariesToNodes(subProcessBoundaries, diInfos)
+    nodes.push(...boundaryNodes)
+
+    // Convert sequence flows to vue-flow edges with redirection
+    const edges = convertSequenceFlowsToEdges(sequenceFlows, subProcessInfoMap)
 
     // Build workflow
     const workflow: BpmnWorkflow = {
@@ -179,6 +183,7 @@ function extractDiInfo(definitions: any): Map<string, DiInfo> {
     const shapes = plane.shapes || []
     shapes.forEach((shape: any) => {
       const bounds = shape.bounds
+      const isExpanded = shape.isExpanded === true
       diMap.set(shape.bpmnElement?.id, {
         id: shape.id,
         bpmnElement: shape.bpmnElement?.id,
@@ -187,7 +192,8 @@ function extractDiInfo(definitions: any): Map<string, DiInfo> {
           y: bounds.y,
           width: bounds.width,
           height: bounds.height
-        } : undefined
+        } : undefined,
+        isExpanded
       })
     })
 
@@ -202,6 +208,134 @@ function extractDiInfo(definitions: any): Map<string, DiInfo> {
   })
 
   return diMap
+}
+
+/**
+ * Extract flow elements from process, recursively handling expanded subProcesses
+ * @param process - BPMN process or subProcess element
+ * @param diInfos - DI information map
+ * @param warnings - Array to collect warnings
+ * @param parentSubProcessId - ID of parent subProcess (for nested subProcesses)
+ * @param parentOffset - Coordinate offset from parent subProcess
+ * @returns Object containing flowNodes, sequenceFlows, and subProcessBoundaries arrays
+ */
+function extractFlowElements(
+  process: any,
+  diInfos: Map<string, DiInfo>,
+  warnings: string[],
+  parentSubProcessId?: string,
+  parentOffset: { x: number; y: number } = { x: 0, y: 0 }
+): { flowNodes: any[]; sequenceFlows: any[]; subProcessBoundaries: any[] } {
+  const flowNodes: any[] = []
+  const sequenceFlows: any[] = []
+  const subProcessBoundaries: any[] = []
+
+  const flowElements = process.flowElements || []
+
+  // Find internal start and end events of subProcesses (for edge redirection)
+  const subProcessStartEvents = new Map<string, string>() // subProcessId -> startEventId
+  const subProcessEndEvents = new Map<string, string>() // subProcessId -> endEventId
+
+  flowElements.forEach((element: any) => {
+    if (element.$type === 'bpmn:SequenceFlow') {
+      // bpmn-moddle stores sourceRef/targetRef as object references
+      // Extract IDs from these references
+      const sourceRefId = element.sourceRef?.id || element.sourceRef
+      const targetRefId = element.targetRef?.id || element.targetRef
+
+      sequenceFlows.push({
+        ...element,
+        _parentSubProcessId: parentSubProcessId,
+        // Store sourceRef and targetRef IDs explicitly
+        _sourceRefId: sourceRefId,
+        _targetRefId: targetRefId
+      })
+    } else if (element.$type === 'bpmn:SubProcess') {
+      // Check if subProcess is expanded via DI
+      const diInfo = diInfos.get(element.id)
+      const isExpanded = diInfo?.isExpanded === true
+
+      // Always expand subProcesses to show internal content
+      if (true || isExpanded) {
+        if (!isExpanded) {
+          warnings.push(`SubProcess "${element.name || element.id}" is marked as collapsed but will be expanded for editing`)
+        }
+
+        // Get subProcess boundary info (from main diagram)
+        const subProcessBounds = diInfo?.bounds
+        const subProcessOffset = subProcessBounds
+          ? { x: subProcessBounds.x, y: subProcessBounds.y }
+          : { x: 0, y: 0 }
+
+        // Extract internal elements from the subProcess's own diagram
+        // The internal elements have coordinates in the subProcess's own plane
+        const subFlowElements = element.flowElements || []
+        const internalNodes: any[] = []
+        const internalFlows: any[] = []
+
+        // First pass: find start/end events for redirection
+        subFlowElements.forEach((subElement: any) => {
+          if (subElement.$type === 'bpmn:StartEvent') {
+            subProcessStartEvents.set(element.id, subElement.id)
+          } else if (subElement.$type === 'bpmn:EndEvent') {
+            subProcessEndEvents.set(element.id, subElement.id)
+          }
+        })
+
+        // Second pass: extract internal elements with coordinate transformation
+        subFlowElements.forEach((subElement: any) => {
+          if (subElement.$type === 'bpmn:SequenceFlow') {
+            // bpmn-moddle stores sourceRef/targetRef as object references
+            // We need to extract the ID from these references
+            const sourceRefId = subElement.sourceRef?.id || subElement.sourceRef
+            const targetRefId = subElement.targetRef?.id || subElement.targetRef
+
+            internalFlows.push({
+              ...subElement,
+              _parentSubProcessId: element.id,
+              _subProcessOwnerId: element.id,
+              // Store sourceRef and targetRef IDs explicitly
+              _sourceRefId: sourceRefId,
+              _targetRefId: targetRefId
+            })
+          } else if (SUPPORTED_ELEMENT_TYPES.has(subElement.$type)) {
+            // Add parent subProcess reference and original position
+            internalNodes.push({
+              ...subElement,
+              _parentSubProcessId: element.id,
+              _originalPosition: undefined, // Will be set by DI
+              _subProcessOffset: subProcessOffset
+            })
+          } else if (subElement.$type && subElement.$type.startsWith('bpmn:')) {
+            warnings.push(`Unsupported element type in subProcess: ${subElement.$type} (id: ${subElement.id})`)
+          }
+        })
+
+        // Add internal nodes and flows to main lists
+        flowNodes.push(...internalNodes)
+        sequenceFlows.push(...internalFlows)
+
+        // Add subProcess boundary as a special node
+        subProcessBoundaries.push({
+          ...element,
+          _isBoundary: true,
+          _internalStart: subProcessStartEvents.get(element.id),
+          _internalEnd: subProcessEndEvents.get(element.id),
+          _bounds: subProcessBounds
+        })
+      } else {
+        // Collapsed subProcess: treat as a single node
+        flowNodes.push(element)
+      }
+    } else if (SUPPORTED_ELEMENT_TYPES.has(element.$type)) {
+      // Add parent subProcess reference for non-subProcess nodes
+      flowNodes.push({ ...element, _parentSubProcessId: parentSubProcessId })
+    } else if (element.$type && element.$type.startsWith('bpmn:')) {
+      warnings.push(`Unsupported element type: ${element.$type} (id: ${element.id})`)
+    }
+  })
+
+  return { flowNodes, sequenceFlows, subProcessBoundaries }
 }
 
 /**
@@ -332,6 +466,17 @@ function extractNodeProperties(element: any, data: BpmnNodeData, nodeType: BpmnE
       // Event properties (timer, message, signal, error)
       if (extensionElements) {
         extractEventProperties(extensionElements, data)
+      }
+      break
+
+    case 'subProcess':
+      // SubProcess properties
+      // For collapsed subProcesses, we just store basic info
+      // Expanded subProcesses would need more complex handling
+      data.triggeredByEvent = element.triggeredByEvent === true
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
       }
       break
   }
@@ -493,11 +638,42 @@ function parseCandidateStarterGroups(process: any): string[] | undefined {
 
 /**
  * Convert BPMN sequence flows to vue-flow edges
+ * Handles redirection for flows connecting to/from expanded subProcesses
  */
-function convertSequenceFlowsToEdges(sequenceFlows: any[]): BpmnEdge[] {
+function convertSequenceFlowsToEdges(
+  sequenceFlows: any[],
+  subProcessInfoMap: Map<string, { internalStart?: string; internalEnd?: string; bounds?: any }>
+): BpmnEdge[] {
   return sequenceFlows.map(flow => {
-    const sourceId = flow.sourceRef?.id
-    const targetId = flow.targetRef?.id
+    // In bpmn-moddle, sourceRef and targetRef can be:
+    // 1. String IDs (for main process flows)
+    // 2. Object references (for subProcess internal flows)
+    // 3. We also store _sourceRefId and _targetRefId for internal flows
+    let sourceId = flow._sourceRefId || flow.sourceRef
+    let targetId = flow._targetRefId || flow.targetRef
+
+    // If sourceRef/targetRef are objects, get their IDs
+    if (typeof flow.sourceRef === 'object' && flow.sourceRef?.id) {
+      sourceId = flow.sourceRef.id
+    }
+    if (typeof flow.targetRef === 'object' && flow.targetRef?.id) {
+      targetId = flow.targetRef.id
+    }
+
+    // Check if source or target is an expanded subProcess
+    // If so, redirect to internal start/end events
+    const sourceSubProcess = subProcessInfoMap.get(sourceId)
+    const targetSubProcess = subProcessInfoMap.get(targetId)
+
+    // If source is an expanded subProcess, redirect to its internal end event
+    if (sourceSubProcess?.internalEnd) {
+      sourceId = sourceSubProcess.internalEnd
+    }
+
+    // If target is an expanded subProcess, redirect to its internal start event
+    if (targetSubProcess?.internalStart) {
+      targetId = targetSubProcess.internalStart
+    }
 
     if (!sourceId || !targetId) {
       throw new Error(`Invalid sequence flow: ${flow.id} missing source or target`)
@@ -521,6 +697,54 @@ function convertSequenceFlowsToEdges(sequenceFlows: any[]): BpmnEdge[] {
       data,
       type: 'default',
       animated: false
+    }
+  })
+}
+
+/**
+ * Convert subProcess boundaries to vue-flow nodes
+ * These are rendered as rectangles behind the internal elements
+ */
+function convertSubProcessBoundariesToNodes(subProcessBoundaries: any[], diInfos: Map<string, DiInfo>): BpmnNode[] {
+  return subProcessBoundaries.map((sp: any) => {
+    const diInfo = diInfos.get(sp.id)
+    const bounds = sp._bounds || diInfo?.bounds
+
+    // Determine position and size
+    let position: { x: number; y: number }
+    let width: number
+    let height: number
+
+    if (bounds) {
+      position = { x: bounds.x, y: bounds.y }
+      width = bounds.width
+      height = bounds.height
+    } else {
+      // Fallback to default position
+      position = { x: 100, y: 100 }
+      width = 400
+      height = 300
+    }
+
+    // Build node data
+    const data: BpmnNodeData = {
+      label: sp.name || sp.id || 'Sub Process',
+      width,
+      height,
+      documentation: sp.documentation,
+      isSubProcessBoundary: true,
+      subProcessId: sp.id
+    }
+
+    // Extract type-specific properties
+    extractNodeProperties(sp, data, 'subProcess')
+
+    return {
+      id: `${sp.id}-boundary`,
+      type: 'subProcessBoundary',
+      position,
+      data,
+      style: { zIndex: 0 } // Render behind other nodes
     }
   })
 }
@@ -577,7 +801,9 @@ function getDefaultWidth(type: BpmnElementType): number {
     userTask: 120,
     serviceTask: 120,
     exclusiveGateway: 60,
-    parallelGateway: 60
+    parallelGateway: 60,
+    subProcess: 100,
+    subProcessBoundary: 400
   }
   return widths[type] || 100
 }
@@ -592,7 +818,9 @@ function getDefaultHeight(type: BpmnElementType): number {
     userTask: 80,
     serviceTask: 80,
     exclusiveGateway: 60,
-    parallelGateway: 60
+    parallelGateway: 60,
+    subProcess: 80,
+    subProcessBoundary: 300
   }
   return heights[type] || 80
 }

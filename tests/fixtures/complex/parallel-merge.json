@@ -1,0 +1,162 @@
+{
+  "process": {
+    "id": "parallel-merge-process",
+    "name": "Parallel Merge Process",
+    "version": 1,
+    "executable": true
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "startEvent",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Start",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "fork-gateway",
+      "type": "parallelGateway",
+      "position": { "x": 250, "y": 200 },
+      "data": {
+        "label": "Fork",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-parallel-1",
+      "type": "serviceTask",
+      "position": { "x": 450, "y": 100 },
+      "data": {
+        "label": "Parallel Task 1",
+        "class": "com.example.ParallelTask1",
+        "async": true,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-parallel-2",
+      "type": "serviceTask",
+      "position": { "x": 450, "y": 200 },
+      "data": {
+        "label": "Parallel Task 2",
+        "class": "com.example.ParallelTask2",
+        "async": true,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-parallel-3",
+      "type": "serviceTask",
+      "position": { "x": 450, "y": 300 },
+      "data": {
+        "label": "Parallel Task 3",
+        "class": "com.example.ParallelTask3",
+        "async": true,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "merge-gateway",
+      "type": "parallelGateway",
+      "position": { "x": 650, "y": 200 },
+      "data": {
+        "label": "Merge",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-final",
+      "type": "userTask",
+      "position": { "x": 800, "y": 200 },
+      "data": {
+        "label": "Final Task",
+        "assignee": "${manager}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "end-1",
+      "type": "endEvent",
+      "position": { "x": 1000, "y": 200 },
+      "data": {
+        "label": "End",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-1",
+      "source": "start-1",
+      "target": "fork-gateway",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-2",
+      "source": "fork-gateway",
+      "target": "task-parallel-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-3",
+      "source": "fork-gateway",
+      "target": "task-parallel-2",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-4",
+      "source": "fork-gateway",
+      "target": "task-parallel-3",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-5",
+      "source": "task-parallel-1",
+      "target": "merge-gateway",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-6",
+      "source": "task-parallel-2",
+      "target": "merge-gateway",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-7",
+      "source": "task-parallel-3",
+      "target": "merge-gateway",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-8",
+      "source": "merge-gateway",
+      "target": "task-final",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-9",
+      "source": "task-final",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    }
+  ]
+}

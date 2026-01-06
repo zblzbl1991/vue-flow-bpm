@@ -2,6 +2,21 @@ import { ref } from 'vue'
 import type { BpmnWorkflow, BpmnNode, BpmnEdge } from '@/types/bpmn'
 import { generateBpmnXml, validateWorkflow } from '@/utils/bpmn-converter'
 
+// Standalone function for direct import
+export function convertToBpmnXml(nodes: BpmnNode[], edges: BpmnEdge[], processId?: string, processName?: string): string {
+  const workflow: BpmnWorkflow = {
+    process: {
+      id: processId || `process-${Date.now()}`,
+      name: processName || 'My Process',
+      version: 1
+    },
+    nodes,
+    edges
+  }
+
+  return generateBpmnXml(workflow)
+}
+
 export function useBpmnConverter() {
   const isConverting = ref(false)
   const conversionError = ref<string | null>(null)

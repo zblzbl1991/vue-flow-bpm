@@ -1,0 +1,237 @@
+{
+  "process": {
+    "id": "nested-gateways-process",
+    "name": "Nested Gateways Process",
+    "version": 1,
+    "executable": true
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "startEvent",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Start",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "gateway-level1",
+      "type": "exclusiveGateway",
+      "position": { "x": 250, "y": 200 },
+      "data": {
+        "label": "Level 1",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-a",
+      "type": "userTask",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "Task A",
+        "assignee": "${userA}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "gateway-level2a",
+      "type": "exclusiveGateway",
+      "position": { "x": 600, "y": 100 },
+      "data": {
+        "label": "Level 2A",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-b",
+      "type": "userTask",
+      "position": { "x": 400, "y": 300 },
+      "data": {
+        "label": "Task B",
+        "assignee": "${userB}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "gateway-level2b",
+      "type": "exclusiveGateway",
+      "position": { "x": 600, "y": 300 },
+      "data": {
+        "label": "Level 2B",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-c",
+      "type": "userTask",
+      "position": { "x": 800, "y": 50 },
+      "data": {
+        "label": "Task C",
+        "assignee": "${userC}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-d",
+      "type": "userTask",
+      "position": { "x": 800, "y": 150 },
+      "data": {
+        "label": "Task D",
+        "assignee": "${userD}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-e",
+      "type": "userTask",
+      "position": { "x": 800, "y": 250 },
+      "data": {
+        "label": "Task E",
+        "assignee": "${userE}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-f",
+      "type": "userTask",
+      "position": { "x": 800, "y": 350 },
+      "data": {
+        "label": "Task F",
+        "assignee": "${userF}",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "end-1",
+      "type": "endEvent",
+      "position": { "x": 1000, "y": 200 },
+      "data": {
+        "label": "End",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-1",
+      "source": "start-1",
+      "target": "gateway-level1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-2",
+      "source": "gateway-level1",
+      "target": "task-a",
+      "data": {
+        "label": "Path A",
+        "condition": "${path == 'A'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-3",
+      "source": "gateway-level1",
+      "target": "task-b",
+      "data": {
+        "label": "Path B",
+        "condition": "${path == 'B'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-4",
+      "source": "task-a",
+      "target": "gateway-level2a",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-5",
+      "source": "gateway-level2a",
+      "target": "task-c",
+      "data": {
+        "label": "Sub-path A1",
+        "condition": "${subPath == 'A1'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-6",
+      "source": "gateway-level2a",
+      "target": "task-d",
+      "data": {
+        "label": "Sub-path A2",
+        "condition": "${subPath == 'A2'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-7",
+      "source": "task-b",
+      "target": "gateway-level2b",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-8",
+      "source": "gateway-level2b",
+      "target": "task-e",
+      "data": {
+        "label": "Sub-path B1",
+        "condition": "${subPath == 'B1'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-9",
+      "source": "gateway-level2b",
+      "target": "task-f",
+      "data": {
+        "label": "Sub-path B2",
+        "condition": "${subPath == 'B2'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-10",
+      "source": "task-c",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-11",
+      "source": "task-d",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-12",
+      "source": "task-e",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-13",
+      "source": "task-f",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    }
+  ]
+}

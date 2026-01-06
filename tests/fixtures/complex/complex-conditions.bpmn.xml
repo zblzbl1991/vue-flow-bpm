@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:flowable="http://flowable.org/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="complex-conditions-process" name="Complex Conditions Process" isExecutable="true">
+    <bpmn:startEvent id="start-1" name="Start">
+      <bpmn:outgoing>flow-1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="gateway-main" name="Check Priority" default="flow-low-priority">
+      <bpmn:incoming>flow-1</bpmn:incoming>
+      <bpmn:outgoing>flow-high-priority</bpmn:outgoing>
+      <bpmn:outgoing>flow-medium-priority</bpmn:outgoing>
+      <bpmn:outgoing>flow-low-priority</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="task-high" name="High Priority Task" flowable:assignee="${seniorStaff}" flowable:priority="100" flowable:dueDate="2024-12-31">
+      <bpmn:incoming>flow-high-priority</bpmn:incoming>
+      <bpmn:outgoing>flow-from-high</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="gateway-medium" name="Check Type">
+      <bpmn:incoming>flow-medium-priority</bpmn:incoming>
+      <bpmn:outgoing>flow-type-a</bpmn:outgoing>
+      <bpmn:outgoing>flow-type-b</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="task-medium-a" name="Medium Type A" flowable:assignee="${staffA}" flowable:priority="50">
+      <bpmn:incoming>flow-type-a</bpmn:incoming>
+      <bpmn:outgoing>flow-from-medium-a</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="task-medium-b" name="Medium Type B" flowable:assignee="${staffB}" flowable:priority="50">
+      <bpmn:incoming>flow-type-b</bpmn:incoming>
+      <bpmn:outgoing>flow-from-medium-b</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="task-low" name="Auto Process Low" flowable:class="com.example.AutoProcessor" flowable:async="true">
+      <bpmn:incoming>flow-low-priority</bpmn:incoming>
+      <bpmn:outgoing>flow-from-low</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="end-1" name="End">
+      <bpmn:incoming>flow-from-high</bpmn:incoming>
+      <bpmn:incoming>flow-from-medium-a</bpmn:incoming>
+      <bpmn:incoming>flow-from-medium-b</bpmn:incoming>
+      <bpmn:incoming>flow-from-low</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="flow-1" sourceRef="start-1" targetRef="gateway-main" />
+    <bpmn:sequenceFlow id="flow-high-priority" name="High Priority" sourceRef="gateway-main" targetRef="task-high">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${priority >= 80 &amp;&amp; urgency == 'critical'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-medium-priority" name="Medium Priority" sourceRef="gateway-main" targetRef="gateway-medium">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${priority >= 40 &amp;&amp; priority &lt; 80}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-low-priority" name="Low Priority (Default)" sourceRef="gateway-main" targetRef="task-low" />
+    <bpmn:sequenceFlow id="flow-type-a" name="Type A" sourceRef="gateway-medium" targetRef="task-medium-a">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${requestType == 'typeA' || requestType == 'both'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-type-b" name="Type B" sourceRef="gateway-medium" targetRef="task-medium-b">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${requestType == 'typeB'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-from-high" sourceRef="task-high" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-from-medium-a" sourceRef="task-medium-a" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-from-medium-b" sourceRef="task-medium-b" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-from-low" sourceRef="task-low" targetRef="end-1" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="complex-conditions-process">
+      <bpmndi:BPMNShape id="Shape_start-1" bpmnElement="start-1">
+        <dc:Bounds x="100" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_gateway-main" bpmnElement="gateway-main" isMarkerVisible="true">
+        <dc:Bounds x="250" y="200" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-high" bpmnElement="task-high">
+        <dc:Bounds x="450" y="50" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_gateway-medium" bpmnElement="gateway-medium" isMarkerVisible="true">
+        <dc:Bounds x="650" y="200" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-medium-a" bpmnElement="task-medium-a">
+        <dc:Bounds x="850" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-medium-b" bpmnElement="task-medium-b">
+        <dc:Bounds x="850" y="280" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-low" bpmnElement="task-low">
+        <dc:Bounds x="450" y="350" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_end-1" bpmnElement="end-1">
+        <dc:Bounds x="1100" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:flowable="http://flowable.org/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="definitions-1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="process-branch-001" name="Single Branch Process" version="1" isExecutable="true">
+    <bpmn:startEvent id="start-1" name="Start" />
+    <bpmn:exclusiveGateway id="gateway-1" name="Approval?">
+      <bpmn:outgoing>flow-approve</bpmn:outgoing>
+      <bpmn:outgoing>flow-reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="task-approve" name="Approve" flowable:assignee="manager" />
+    <bpmn:userTask id="task-reject" name="Reject" flowable:assignee="admin" />
+    <bpmn:endEvent id="end-1" name="End" />
+    <bpmn:sequenceFlow id="flow-1" sourceRef="start-1" targetRef="gateway-1" />
+    <bpmn:sequenceFlow id="flow-approve" name="Approved" sourceRef="gateway-1" targetRef="task-approve">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-reject" name="Rejected" sourceRef="gateway-1" targetRef="task-reject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-2" sourceRef="task-approve" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-3" sourceRef="task-reject" targetRef="end-1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="bpmn-diagram-1">
+    <bpmndi:BPMNPlane id="bpmn-plane-1" bpmnElement="process-branch-001">
+      <bpmndi:BPMNShape id="shape-start-1" bpmnElement="start-1">
+        <dc:Bounds x="100" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-gateway-1" bpmnElement="gateway-1">
+        <dc:Bounds x="300" y="100" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-task-approve" bpmnElement="task-approve">
+        <dc:Bounds x="500" y="40" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-task-reject" bpmnElement="task-reject">
+        <dc:Bounds x="500" y="160" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-end-1" bpmnElement="end-1">
+        <dc:Bounds x="700" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-flow-1" bpmnElement="flow-1">
+        <di:waypoint x="150" y="125" />
+        <di:waypoint x="300" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-flow-approve" bpmnElement="flow-approve">
+        <di:waypoint x="330" y="100" />
+        <di:waypoint x="500" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-flow-reject" bpmnElement="flow-reject">
+        <di:waypoint x="330" y="160" />
+        <di:waypoint x="500" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-flow-2" bpmnElement="flow-2">
+        <di:waypoint x="620" y="80" />
+        <di:waypoint x="700" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-flow-3" bpmnElement="flow-3">
+        <di:waypoint x="620" y="200" />
+        <di:waypoint x="700" y="125" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

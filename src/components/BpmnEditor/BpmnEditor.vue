@@ -36,9 +36,20 @@
         <label class="toolbar-btn">
           <span>📂</span> Load JSON
           <input
+            ref="jsonFileInput"
             type="file"
             accept=".json"
             @change="onLoadJson"
+            style="display: none"
+          />
+        </label>
+        <label class="toolbar-btn">
+          <span>📋</span> Load BPMN
+          <input
+            ref="bpmnFileInput"
+            type="file"
+            accept=".bpmn,.xml"
+            @change="onLoadBpmn"
             style="display: none"
           />
         </label>
@@ -84,6 +95,15 @@
       @close="onPreviewPanelClose"
       @export-bpmn="onExportBpmnFromPanel"
     />
+
+    <ImportNotification
+      ref="notificationRef"
+      :type="notificationType"
+      :title="notificationTitle"
+      :message="notificationMessage"
+      :warnings="notificationWarnings"
+      :persistent="notificationPersistent"
+    />
   </div>
 </template>
 
@@ -99,14 +119,19 @@ import UserTask from '@/components/nodes/UserTask.vue'
 import ServiceTask from '@/components/nodes/ServiceTask.vue'
 import ExclusiveGateway from '@/components/nodes/ExclusiveGateway.vue'
 import ParallelGateway from '@/components/nodes/ParallelGateway.vue'
+import SubProcess from '@/components/nodes/SubProcess.vue'
+import SubProcessBoundary from '@/components/nodes/SubProcessBoundary.vue'
 import ControlPanel from './ControlPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import PreviewModal from './PreviewModal.vue'
 import ContextMenu from './ContextMenu.vue'
 import BpmnJsPreviewPanel from './BpmnJsPreviewPanel.vue'
+import ImportNotification from './ImportNotification.vue'
 import { useBpmnEditor } from '@/composables/useBpmnEditor'
 import { useBpmnConverter } from '@/composables/useBpmnConverter'
-import type { BpmnElementType } from '@/types/bpmn'
+import { useWorkflowImporter } from '@/composables/useWorkflowImporter'
+import type { BpmnElementType, BpmnWorkflow } from '@/types/bpmn'
+import type { NotificationType } from './ImportNotification.vue'
 
 const nodeTypes = {
   startEvent: markRaw(StartEvent),
@@ -114,7 +139,9 @@ const nodeTypes = {
   userTask: markRaw(UserTask),
   serviceTask: markRaw(ServiceTask),
   exclusiveGateway: markRaw(ExclusiveGateway),
-  parallelGateway: markRaw(ParallelGateway)
+  parallelGateway: markRaw(ParallelGateway),
+  subProcess: markRaw(SubProcess),
+  subProcessBoundary: markRaw(SubProcessBoundary)
 }
 
 const {
@@ -138,6 +165,7 @@ const {
 } = useBpmnEditor()
 
 const { validateAndConvert, downloadBpmnFile } = useBpmnConverter()
+const { importFromFile, loading: importLoading } = useWorkflowImporter()
 
 const showPreview = ref(false)
 const generatedBpmnXml = ref('')
@@ -157,6 +185,18 @@ const processInfo = ref({
 const contextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
+
+// Notification state
+const notificationRef = ref<InstanceType<typeof ImportNotification> | null>(null)
+const notificationType = ref<NotificationType>('success')
+const notificationTitle = ref('')
+const notificationMessage = ref('')
+const notificationWarnings = ref<string[]>([])
+const notificationPersistent = ref(false)
+
+// File input refs
+const jsonFileInput = ref<HTMLInputElement | null>(null)
+const bpmnFileInput = ref<HTMLInputElement | null>(null)
 
 const onAddElement = (type: BpmnElementType) => {
   // Add node at a default position with some offset
@@ -333,20 +373,130 @@ const onExportJson = () => {
   URL.revokeObjectURL(url)
 }
 
-const onLoadJson = (event: Event) => {
+const onLoadJson = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const content = e.target?.result as string
-    if (loadFromJson(content)) {
-      alert('Workflow loaded successfully')
-    } else {
-      alert('Failed to load workflow. Please check the file format.')
+  // Check if editor has content and prompt for confirmation
+  const hasContent = nodes.value.length > 0 || edges.value.length > 0
+  if (hasContent) {
+    const confirmed = confirm('Importing will replace the current workflow. Do you want to continue?')
+    if (!confirmed) {
+      // Reset file input
+      if (jsonFileInput.value) jsonFileInput.value.value = ''
+      return
     }
   }
-  reader.readAsText(file)
+
+  const result = await importFromFile(file)
+
+  if (result.success && result.workflow) {
+    applyWorkflow(result.workflow)
+    showNotification(
+      'success',
+      'Import Successful',
+      `Loaded ${result.workflow.nodes.length} nodes and ${result.workflow.edges.length} edges.`,
+      result.warnings || []
+    )
+  } else {
+    showNotification(
+      'error',
+      'Import Failed',
+      result.error || 'Failed to import workflow',
+      [],
+      true
+    )
+  }
+
+  // Reset file input
+  if (jsonFileInput.value) jsonFileInput.value.value = ''
+}
+
+const onLoadBpmn = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  // Check if editor has content and prompt for confirmation
+  const hasContent = nodes.value.length > 0 || edges.value.length > 0
+  if (hasContent) {
+    const confirmed = confirm('Importing will replace the current workflow. Do you want to continue?')
+    if (!confirmed) {
+      // Reset file input
+      if (bpmnFileInput.value) bpmnFileInput.value.value = ''
+      return
+    }
+  }
+
+  const result = await importFromFile(file)
+
+  if (result.success && result.workflow) {
+    applyWorkflow(result.workflow)
+    showNotification(
+      'success',
+      'BPMN Import Successful',
+      `Loaded ${result.workflow.nodes.length} nodes and ${result.workflow.edges.length} edges.`,
+      result.warnings || []
+    )
+  } else {
+    showNotification(
+      'error',
+      'BPMN Import Failed',
+      result.error || 'Failed to import BPMN file',
+      [],
+      true
+    )
+  }
+
+  // Reset file input
+  if (bpmnFileInput.value) bpmnFileInput.value.value = ''
+}
+
+/**
+ * Apply imported workflow to editor state
+ */
+const applyWorkflow = (workflow: BpmnWorkflow) => {
+  // Clear current content
+  clearAll()
+
+  // Update process info
+  processInfo.value = {
+    id: workflow.process.id,
+    name: workflow.process.name,
+    version: workflow.process.version,
+    executable: workflow.process.executable ?? true,
+    documentation: workflow.process.documentation || '',
+    candidateStarterGroups: workflow.process.candidateStarterGroups || []
+  }
+
+  // Load nodes and edges using the editor's loadFromJson method
+  // We need to construct the JSON format expected by loadFromJson
+  const jsonData = JSON.stringify({
+    process: workflow.process,
+    nodes: workflow.nodes,
+    edges: workflow.edges
+  })
+
+  loadFromJson(jsonData)
+}
+
+/**
+ * Show notification with specified parameters
+ */
+const showNotification = (
+  type: NotificationType,
+  title: string,
+  message: string,
+  warnings: string[] = [],
+  persistent = false
+) => {
+  notificationType.value = type
+  notificationTitle.value = title
+  notificationMessage.value = message
+  notificationWarnings.value = warnings
+  notificationPersistent.value = persistent
+
+  // Trigger the notification
+  notificationRef.value?.show()
 }
 
 const onExportXml = () => {

@@ -1,0 +1,140 @@
+{
+  "process": {
+    "id": "special-chars-process",
+    "name": "Process with Special Chars & Symbols ©®™",
+    "version": 1,
+    "executable": true
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "startEvent",
+      "position": { "x": 100, "y": 150 },
+      "data": {
+        "label": "开始 🎯",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "task-quotes",
+      "type": "userTask",
+      "position": { "x": 250, "y": 50 },
+      "data": {
+        "label": "Task with 'quotes' and \"double quotes\"",
+        "assignee": "${userO'Brien}",
+        "documentation": "Use \"quotes\" and 'apostrophes' freely. Test: \"value's\"",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-unicode",
+      "type": "userTask",
+      "position": { "x": 250, "y": 150 },
+      "data": {
+        "label": "Unicode: 你好世界 🌍 مرحبا",
+        "assignee": "${国际用户}",
+        "documentation": "Support for UTF-8: é ñ ü ö ø æ © ®™ ℠ § ¶ † ‡ •",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-emojis",
+      "type": "serviceTask",
+      "position": { "x": 250, "y": 250 },
+      "data": {
+        "label": "Process with Emojis 🎉🚀✨💼📊",
+        "class": "com.example.EmojiProcessor",
+        "documentation": "Emoji test: 😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-mixed",
+      "type": "userTask",
+      "position": { "x": 450, "y": 150 },
+      "data": {
+        "label": "Mix: \"<script>&'<>©\"",
+        "assignee": "${user\"test'<>&}",
+        "documentation": "Mixed special chars: <tag> &amp; &quot; &apos; &lt; &gt;",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "end-1",
+      "type": "endEvent",
+      "position": { "x": 650, "y": 150 },
+      "data": {
+        "label": "完成 ✓",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-1",
+      "source": "start-1",
+      "target": "task-quotes",
+      "data": {
+        "label": "Route 'A' with \"quotes\"",
+        "condition": "${choice == 'A' || choice == \"B\"}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-2",
+      "source": "start-1",
+      "target": "task-unicode",
+      "data": {
+        "label": "Route: 你好 🇨🇳",
+        "condition": "${language == '中文'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-3",
+      "source": "start-1",
+      "target": "task-emojis",
+      "data": {
+        "label": "Emoji route 🚀",
+        "condition": "${hasEmoji == true}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-4",
+      "source": "task-quotes",
+      "target": "task-mixed",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-5",
+      "source": "task-unicode",
+      "target": "task-mixed",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-6",
+      "source": "task-emojis",
+      "target": "task-mixed",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-7",
+      "source": "task-mixed",
+      "target": "end-1",
+      "data": {
+        "label": "Final \"complete\" ✅"
+      },
+      "type": "default"
+    }
+  ]
+}

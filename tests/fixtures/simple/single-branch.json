@@ -1,0 +1,105 @@
+{
+  "process": {
+    "id": "process-branch-001",
+    "name": "Single Branch Process",
+    "version": 1,
+    "executable": true
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "startEvent",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Start",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "gateway-1",
+      "type": "exclusiveGateway",
+      "position": { "x": 300, "y": 100 },
+      "data": {
+        "label": "Approval?",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-approve",
+      "type": "userTask",
+      "position": { "x": 500, "y": 40 },
+      "data": {
+        "label": "Approve",
+        "width": 120,
+        "height": 80,
+        "assignee": "manager"
+      }
+    },
+    {
+      "id": "task-reject",
+      "type": "userTask",
+      "position": { "x": 500, "y": 160 },
+      "data": {
+        "label": "Reject",
+        "width": 120,
+        "height": 80,
+        "assignee": "admin"
+      }
+    },
+    {
+      "id": "end-1",
+      "type": "endEvent",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "End",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-1",
+      "source": "start-1",
+      "target": "gateway-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-approve",
+      "source": "gateway-1",
+      "target": "task-approve",
+      "data": {
+        "label": "Approved",
+        "condition": "${approved == true}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-reject",
+      "source": "gateway-1",
+      "target": "task-reject",
+      "data": {
+        "label": "Rejected",
+        "condition": "${approved == false}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-2",
+      "source": "task-approve",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-3",
+      "source": "task-reject",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    }
+  ]
+}

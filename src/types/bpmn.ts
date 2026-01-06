@@ -58,6 +58,10 @@ export interface BpmnNodeData {
   // BPMN ID for round-trip conversion (stores original BPMN element ID)
   bpmnId?: string
 
+  // SubProcess boundary flag
+  isSubProcessBoundary?: boolean
+  subProcessId?: string
+
   // Process properties (for process definition only)
   processName?: string
   processVersion?: string
@@ -135,6 +139,8 @@ export type BpmnElementType =
   | 'serviceTask'
   | 'exclusiveGateway'
   | 'parallelGateway'
+  | 'subProcess'
+  | 'subProcessBoundary'
 
 export interface BpmnProcess {
   id: string
@@ -201,6 +207,20 @@ export const BPMN_ELEMENT_CONFIGS: Record<BpmnElementType, BpmnElementConfig> = 
     icon: '◈',
     description: 'Parallel split gateway',
     defaultSize: { width: 60, height: 60 }
+  },
+  subProcess: {
+    type: 'subProcess',
+    label: 'Sub Process',
+    icon: '▱',
+    description: 'Collapsed sub-process',
+    defaultSize: { width: 100, height: 80 }
+  },
+  subProcessBoundary: {
+    type: 'subProcessBoundary',
+    label: 'Sub Process Boundary',
+    icon: '▭',
+    description: 'Expanded sub-process boundary',
+    defaultSize: { width: 400, height: 300 }
   }
 }
 

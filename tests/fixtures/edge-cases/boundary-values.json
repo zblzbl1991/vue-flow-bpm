@@ -1,0 +1,154 @@
+{
+  "process": {
+    "id": "a".repeat(255),
+    "name": "b".repeat(255) + " boundary value test",
+    "version": 2147483647,
+    "executable": true,
+    "documentation": "c".repeat(4000),
+    "candidateStarterGroups": [
+      "group".repeat(50),
+      "group2",
+      "group3"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "start-" + "a".repeat(240),
+      "type": "startEvent",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Start: " + "s".repeat(240),
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "task-min",
+      "type": "userTask",
+      "position": { "x": 300, "y": 100 },
+      "data": {
+        "label": "a",
+        "assignee": "",
+        "documentation": "",
+        "priority": 0,
+        "dueDate": "",
+        "width": 120,
+        "height": 80,
+        "formKey": "",
+        "candidateUsers": [],
+        "candidateGroups": []
+      }
+    },
+    {
+      "id": "task-" + "b".repeat(240),
+      "type": "userTask",
+      "position": { "x": 300, "y": 200 },
+      "data": {
+        "label": "t".repeat(255),
+        "assignee": "u".repeat(255),
+        "documentation": "d".repeat(4000),
+        "priority": 2147483647,
+        "dueDate": "2099-12-31T23:59:59",
+        "width": 120,
+        "height": 80,
+        "formKey": "f".repeat(255),
+        "candidateUsers": [
+          "user" + "u".repeat(250),
+          "user2",
+          "user3"
+        ],
+        "candidateGroups": [
+          "group" + "g".repeat(245),
+          "group2"
+        ],
+        "skipExpression": "s".repeat(500)
+      }
+    },
+    {
+      "id": "task-max",
+      "type": "serviceTask",
+      "position": { "x": 300, "y": 300 },
+      "data": {
+        "label": "service " + "s".repeat(245),
+        "class": "c".repeat(255),
+        "expression": "e".repeat(1000),
+        "delegateExpression": "d".repeat(500),
+        "async": true,
+        "asyncBefore": true,
+        "asyncAfter": true,
+        "triggerable": true,
+        "documentation": "x".repeat(4000),
+        "inputParameters": [
+          { "name": "p".repeat(255), "value": "v".repeat(1000) }
+        ],
+        "outputParameters": [
+          { "name": "o".repeat(255), "value": "r".repeat(1000) }
+        ]
+      }
+    },
+    {
+      "id": "end-" + "e".repeat(240),
+      "type": "endEvent",
+      "position": { "x": 500, "y": 200 },
+      "data": {
+        "label": "End: " + "e".repeat(240),
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-" + "a".repeat(240),
+      "source": "start-" + "a".repeat(240),
+      "target": "task-min",
+      "data": {
+        "label": "",
+        "name": "",
+        "condition": "",
+        "documentation": ""
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-" + "b".repeat(240),
+      "source": "start-" + "a".repeat(240),
+      "target": "task-" + "b".repeat(240),
+      "data": {
+        "label": "l".repeat(255),
+        "name": "n".repeat(255),
+        "condition": "c".repeat(1000),
+        "documentation": "d".repeat(4000)
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-" + "c".repeat(240),
+      "source": "start-" + "a".repeat(240),
+      "target": "task-max",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-" + "d".repeat(240),
+      "source": "task-min",
+      "target": "end-" + "e".repeat(240),
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-" + "e".repeat(240),
+      "source": "task-" + "b".repeat(240),
+      "target": "end-" + "e".repeat(240),
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-" + "f".repeat(240),
+      "source": "task-max",
+      "target": "end-" + "e".repeat(240),
+      "data": {},
+      "type": "default"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "process": {
+    "id": "complex-conditions-process",
+    "name": "Complex Conditions Process",
+    "version": 1,
+    "executable": true
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "startEvent",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Start",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "gateway-main",
+      "type": "exclusiveGateway",
+      "position": { "x": 250, "y": 200 },
+      "data": {
+        "label": "Check Priority",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-high",
+      "type": "userTask",
+      "position": { "x": 450, "y": 50 },
+      "data": {
+        "label": "High Priority Task",
+        "assignee": "${seniorStaff}",
+        "priority": 100,
+        "dueDate": "2024-12-31",
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "gateway-medium",
+      "type": "exclusiveGateway",
+      "position": { "x": 650, "y": 200 },
+      "data": {
+        "label": "Check Type",
+        "width": 60,
+        "height": 60
+      }
+    },
+    {
+      "id": "task-medium-a",
+      "type": "userTask",
+      "position": { "x": 850, "y": 120 },
+      "data": {
+        "label": "Medium Type A",
+        "assignee": "${staffA}",
+        "priority": 50,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-medium-b",
+      "type": "userTask",
+      "position": { "x": 850, "y": 280 },
+      "data": {
+        "label": "Medium Type B",
+        "assignee": "${staffB}",
+        "priority": 50,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "task-low",
+      "type": "serviceTask",
+      "position": { "x": 450, "y": 350 },
+      "data": {
+        "label": "Auto Process Low",
+        "class": "com.example.AutoProcessor",
+        "async": true,
+        "width": 120,
+        "height": 80
+      }
+    },
+    {
+      "id": "end-1",
+      "type": "endEvent",
+      "position": { "x": 1100, "y": 200 },
+      "data": {
+        "label": "End",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-1",
+      "source": "start-1",
+      "target": "gateway-main",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-high-priority",
+      "source": "gateway-main",
+      "target": "task-high",
+      "data": {
+        "label": "High Priority",
+        "condition": "${priority >= 80 && urgency == 'critical'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-medium-priority",
+      "source": "gateway-main",
+      "target": "gateway-medium",
+      "data": {
+        "label": "Medium Priority",
+        "condition": "${priority >= 40 && priority < 80}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-low-priority",
+      "source": "gateway-main",
+      "target": "task-low",
+      "data": {
+        "label": "Low Priority (Default)",
+        "condition": "${priority < 40}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-type-a",
+      "source": "gateway-medium",
+      "target": "task-medium-a",
+      "data": {
+        "label": "Type A",
+        "condition": "${requestType == 'typeA' || requestType == 'both'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-type-b",
+      "source": "gateway-medium",
+      "target": "task-medium-b",
+      "data": {
+        "label": "Type B",
+        "condition": "${requestType == 'typeB'}"
+      },
+      "type": "default"
+    },
+    {
+      "id": "flow-from-high",
+      "source": "task-high",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-from-medium-a",
+      "source": "task-medium-a",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-from-medium-b",
+      "source": "task-medium-b",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    },
+    {
+      "id": "flow-from-low",
+      "source": "task-low",
+      "target": "end-1",
+      "data": {},
+      "type": "default"
+    }
+  ]
+}

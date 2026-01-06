@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:flowable="http://flowable.org/bpmn"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="nested-gateways-process" name="Nested Gateways Process" isExecutable="true">
+    <bpmn:startEvent id="start-1" name="Start">
+      <bpmn:outgoing>flow-1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="gateway-level1" name="Level 1">
+      <bpmn:incoming>flow-1</bpmn:incoming>
+      <bpmn:outgoing>flow-2</bpmn:outgoing>
+      <bpmn:outgoing>flow-3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="task-a" name="Task A" flowable:assignee="${userA}">
+      <bpmn:incoming>flow-2</bpmn:incoming>
+      <bpmn:outgoing>flow-4</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="gateway-level2a" name="Level 2A">
+      <bpmn:incoming>flow-4</bpmn:incoming>
+      <bpmn:outgoing>flow-5</bpmn:outgoing>
+      <bpmn:outgoing>flow-6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="task-b" name="Task B" flowable:assignee="${userB}">
+      <bpmn:incoming>flow-3</bpmn:incoming>
+      <bpmn:outgoing>flow-7</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="gateway-level2b" name="Level 2B">
+      <bpmn:incoming>flow-7</bpmn:incoming>
+      <bpmn:outgoing>flow-8</bpmn:outgoing>
+      <bpmn:outgoing>flow-9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="task-c" name="Task C" flowable:assignee="${userC}">
+      <bpmn:incoming>flow-5</bpmn:incoming>
+      <bpmn:outgoing>flow-10</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="task-d" name="Task D" flowable:assignee="${userD}">
+      <bpmn:incoming>flow-6</bpmn:incoming>
+      <bpmn:outgoing>flow-11</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="task-e" name="Task E" flowable:assignee="${userE}">
+      <bpmn:incoming>flow-8</bpmn:incoming>
+      <bpmn:outgoing>flow-12</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="task-f" name="Task F" flowable:assignee="${userF}">
+      <bpmn:incoming>flow-9</bpmn:incoming>
+      <bpmn:outgoing>flow-13</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="end-1" name="End">
+      <bpmn:incoming>flow-10</bpmn:incoming>
+      <bpmn:incoming>flow-11</bpmn:incoming>
+      <bpmn:incoming>flow-12</bpmn:incoming>
+      <bpmn:incoming>flow-13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="flow-1" sourceRef="start-1" targetRef="gateway-level1" />
+    <bpmn:sequenceFlow id="flow-2" name="Path A" sourceRef="gateway-level1" targetRef="task-a">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${path == 'A'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-3" name="Path B" sourceRef="gateway-level1" targetRef="task-b">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${path == 'B'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-4" sourceRef="task-a" targetRef="gateway-level2a" />
+    <bpmn:sequenceFlow id="flow-5" name="Sub-path A1" sourceRef="gateway-level2a" targetRef="task-c">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${subPath == 'A1'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-6" name="Sub-path A2" sourceRef="gateway-level2a" targetRef="task-d">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${subPath == 'A2'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-7" sourceRef="task-b" targetRef="gateway-level2b" />
+    <bpmn:sequenceFlow id="flow-8" name="Sub-path B1" sourceRef="gateway-level2b" targetRef="task-e">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${subPath == 'B1'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-9" name="Sub-path B2" sourceRef="gateway-level2b" targetRef="task-f">
+      <bpmn:conditionExpression xsi:type="tFormalExpression">${subPath == 'B2'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow-10" sourceRef="task-c" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-11" sourceRef="task-d" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-12" sourceRef="task-e" targetRef="end-1" />
+    <bpmn:sequenceFlow id="flow-13" sourceRef="task-f" targetRef="end-1" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="nested-gateways-process">
+      <bpmndi:BPMNShape id="Shape_start-1" bpmnElement="start-1">
+        <dc:Bounds x="100" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_gateway-level1" bpmnElement="gateway-level1" isMarkerVisible="true">
+        <dc:Bounds x="250" y="200" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-a" bpmnElement="task-a">
+        <dc:Bounds x="400" y="100" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_gateway-level2a" bpmnElement="gateway-level2a" isMarkerVisible="true">
+        <dc:Bounds x="600" y="100" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-b" bpmnElement="task-b">
+        <dc:Bounds x="400" y="300" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_gateway-level2b" bpmnElement="gateway-level2b" isMarkerVisible="true">
+        <dc:Bounds x="600" y="300" width="60" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-c" bpmnElement="task-c">
+        <dc:Bounds x="800" y="50" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-d" bpmnElement="task-d">
+        <dc:Bounds x="800" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-e" bpmnElement="task-e">
+        <dc:Bounds x="800" y="250" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_task-f" bpmnElement="task-f">
+        <dc:Bounds x="800" y="350" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_end-1" bpmnElement="end-1">
+        <dc:Bounds x="1000" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
