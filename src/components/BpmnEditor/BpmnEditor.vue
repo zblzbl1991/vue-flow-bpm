@@ -16,7 +16,6 @@
         :max-zoom="2"
         fit-view-on-init
         @node-click="onNodeClick"
-        @node:toggle-expand="onToggleExpand"
         @edge-click="onEdgeClick"
         @connect="onConnect"
         @drop="onDrop"
@@ -110,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw, onMounted } from 'vue'
+import { ref, markRaw, onMounted, provide } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -172,6 +171,9 @@ const {
   toggleExpandSubProcess
 } = useBpmnEditor()
 
+// Provide toggleExpandSubProcess to child components (e.g., SubProcess nodes)
+provide('toggleExpand', toggleExpandSubProcess)
+
 const { validateAndConvert, downloadBpmnFile } = useBpmnConverter()
 const { importFromFile, loading: importLoading } = useWorkflowImporter()
 
@@ -226,10 +228,6 @@ const onEdgeClick = (_event: any, edge: Edge) => {
   if (!edge) return
   selectEdge(edge.id)
   contextMenuVisible.value = false
-}
-
-const onToggleExpand = (_event: any, nodeId: string) => {
-  toggleExpandSubProcess(nodeId)
 }
 
 // Handle right-click on canvas

@@ -29,15 +29,15 @@
 ### Phase 5: Testing
 - [x] Add unit test for `extractDiInfo()` waypoint extraction
 - [x] Add unit test for `waypointsToSvgPath()` path generation
-- [ ] Add integration test importing ExpenseProcess.bpmn20.xml with all edge waypoints
-- [ ] Add test verifying 4-waypoint edge (directorNotPassFlow) renders correctly
-- [ ] Add round-trip test: Import → Export → Import preserves waypoints
+- [x] Add integration test importing ExpenseProcess.bpmn20.xml with all edge waypoints
+- [x] Add test verifying 4-waypoint edge (directorNotPassFlow) renders correctly
+- [x] Add round-trip test: Import → Export → Import preserves waypoints
 - [ ] Visual regression test comparing with bpmn-js rendering
 
 ### Phase 6: Documentation
 - [x] Update `src/utils/bpmn-importer.ts` JSDoc for waypoint handling
-- [ ] Update `src/utils/bpmn-converter.ts` JSDoc for waypoint preservation
-- [ ] Document edge data structure in types documentation
+- [x] Update `src/utils/bpmn-converter.ts` JSDoc for waypoint preservation
+- [x] Document edge data structure in types documentation
 
 ## Task Breakdown by File
 
@@ -53,7 +53,7 @@
 
 ### `src/utils/bpmn-converter.ts`
 - [x] Modify BPMNEdge generation in `generateBpmnXml()` to preserve waypoints
-- [ ] Update JSDoc comments
+- [x] Update JSDoc comments
 
 ### `src/components/edges/BpmnEdge.vue` (NEW)
 - [x] Create custom edge component
@@ -66,7 +66,7 @@
 
 ### Tests
 - [x] `tests/utils/bpmn-importer.test.ts`: Add waypoint extraction tests
-- [ ] `tests/integration/bpmn-di-layout.test.ts`: Create new integration test file
+- [x] `tests/integration/bpmn-di-layout.test.ts`: Create new integration test file
 - [x] `tests/fixtures/bpmn20/`: Ensure ExpenseProcess.bpmn20.xml is available
 
 ## Dependencies
@@ -89,8 +89,8 @@ Each task should be verified by:
 - Phase 2 (Import): 5 tasks, ~2 hours **COMPLETED**
 - Phase 3 (Rendering): 4 tasks, ~2 hours **COMPLETED**
 - Phase 4 (Export): 4 tasks, ~1.5 hours **COMPLETED**
-- Phase 5 (Testing): 6 tasks, ~3 hours **PARTIALLY COMPLETED** (unit tests done, integration tests pending)
-- Phase 6 (Documentation): 3 tasks, ~1 hour **PARTIALLY COMPLETED**
+- Phase 5 (Testing): 6 tasks, ~3 hours **MOSTLY COMPLETED** (5/6 tasks done; visual regression test optional)
+- Phase 6 (Documentation): 3 tasks, ~1 hour **COMPLETED**
 
 **Total**: 25 tasks, ~10 hours of development time
-**Status**: Core implementation complete, additional integration tests and documentation updates pending
+**Status**: Implementation complete with comprehensive testing and documentation. Visual regression test remains optional.

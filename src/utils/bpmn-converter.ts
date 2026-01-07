@@ -291,6 +291,27 @@ function convertEdgeToSequenceFlow(edge: BpmnEdge, nodes: BpmnNode[]): any {
   return { 'bpmn:sequenceFlow': flow }
 }
 
+/**
+ * Generates BPMN 2.0 XML from a workflow definition
+ *
+ * This function converts the internal workflow representation into valid BPMN 2.0 XML,
+ * including both the process definition and the diagram interchange (DI) layout information.
+ *
+ * **Waypoint Preservation:**
+ * - For edges with stored waypoints (from original BPMN import), the original waypoint list
+ *   is preserved in the exported XML to maintain the exact visual layout
+ * - For user-created edges without stored waypoints, a simple start-end path is calculated
+ *   based on the source and target node positions
+ *
+ * @param workflow - The workflow to convert, containing process definition, nodes, and edges
+ * @returns A BPMN 2.0 XML string that can be imported by BPMN tools
+ *
+ * @example
+ * ```ts
+ * const xml = generateBpmnXml(workflow)
+ * // Save to file or send to server
+ * ```
+ */
 export function generateBpmnXml(workflow: BpmnWorkflow): string {
   const { process, nodes, edges } = workflow
   const processId = process.id || `process-${Date.now()}`
@@ -380,7 +401,10 @@ export function generateBpmnXml(workflow: BpmnWorkflow): string {
             // Use original BPMN ID if available for round-trip compatibility
             const bpmnElementId = edgeData.bpmnId || generateFlowId(edge.id)
 
-            // If edge has stored waypoints from original import, preserve them
+            // Waypoint Preservation Strategy:
+            // 1. If edge has stored waypoints (from original BPMN import), preserve them exactly
+            //    to maintain the multi-segment path layout from the original BPMN file
+            // 2. Otherwise, calculate a simple 2-point path for user-created edges
             if (edgeData.waypoints && edgeData.waypoints.length >= 2) {
               return {
                 '@id': `edge-${edge.id}`,

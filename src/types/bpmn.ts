@@ -107,7 +107,23 @@ export interface BpmnNodeData {
   outputParameters?: Parameter[]
 }
 
-// Edge data interface
+/**
+ * Edge data interface for BPMN sequence flows
+ *
+ * **BPMN DI Layout Properties:**
+ * - `waypoints`: Array of {x, y} coordinates representing the edge's multi-segment path
+ *   as defined in the BPMN DI (Diagram Interchange) specification. These are extracted
+ *   from `<di:waypoint>` elements in BPMN XML during import and preserved during export.
+ *
+ * - `path`: SVG path 'd' attribute computed from waypoints. Used by the custom edge
+ *   component to render the exact multi-segment path instead of a simple bezier curve.
+ *   Format: "M x1 y1 L x2 y2 L x3 y3 ..." (Move to first point, Line to each subsequent point)
+ *
+ * **Round-trip Conversion:**
+ * - `bpmnId`: Stores the original BPMN element ID to preserve identity during
+ *   import → export → import cycles. This ensures that re-importing an exported file
+ *   maintains element references correctly.
+ */
 export interface BpmnEdgeData {
   condition?: string
   label?: string
@@ -116,8 +132,10 @@ export interface BpmnEdgeData {
   // BPMN ID for round-trip conversion (stores original BPMN sequence flow ID)
   bpmnId?: string
   // BPMN DI path information for preserving edge layout
+  // Waypoints are extracted from <di:waypoint> or <omgdi:waypoint> elements
   waypoints?: Array<{ x: number; y: number }>
-  path?: string  // SVG path d attribute (computed from waypoints)
+  // SVG path d attribute (computed from waypoints for rendering)
+  path?: string
 }
 
 export interface BpmnNode {

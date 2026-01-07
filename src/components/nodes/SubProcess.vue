@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
 
@@ -44,9 +44,10 @@ interface SubProcessNodeData {
 
 const props = defineProps<NodeProps<SubProcessNodeData>>()
 
-const emit = defineEmits<{
-  toggleExpand: [nodeId: string]
-}>()
+// Inject the toggleExpand function from BpmnEditor
+const toggleExpand = inject<(nodeId: string) => void>('toggleExpand', () => {
+  console.warn('toggleExpand function not provided')
+})
 
 const label = computed(() => props.data?.label || 'Sub Process')
 
@@ -69,7 +70,7 @@ const handleId = (type: string) => `${props.id}-${type}`
 const selected = computed(() => props.selected)
 
 const onToggleExpand = () => {
-  emit('toggleExpand', props.id)
+  toggleExpand(props.id)
 }
 </script>
 

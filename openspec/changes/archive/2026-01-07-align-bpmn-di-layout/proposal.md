@@ -3,6 +3,16 @@
 ## Why
 Users expect BPMN 2.0 XML files to render identically in vue-flow-bpm and bpmn-js. The current implementation only extracts node positions from BPMN DI but ignores edge waypoint information, resulting in incorrect edge routing for complex diagrams with multi-segment paths.
 
+## What Changes
+This change enhances BPMN 2.0 XML import/export to fully support Diagram Interchange (DI) layout information:
+
+1. **Edge Waypoint Extraction** - Parse `<di:waypoint>` elements from `BPMNEdge` during import
+2. **Multi-segment Path Rendering** - Convert waypoints to SVG paths for accurate edge visualization
+3. **Waypoint Preservation** - Maintain original waypoint data through round-trip conversion
+4. **Custom Edge Component** - Use stored paths instead of bezier curves for imported edges
+5. **Enhanced Type Definitions** - Add `waypoints` and `path` properties to `BpmnEdgeData`
+6. **Comprehensive Testing** - Unit and integration tests for waypoint handling
+
 ## Summary
 Fix BPMN 2.0 XML import to correctly parse and render `<bpmndi:BPMNDiagram>` layout information, ensuring visual consistency with bpmn-js imported files. Currently, imported BPMN files display with incorrect node positions and edge routing compared to bpmn-js.
 
