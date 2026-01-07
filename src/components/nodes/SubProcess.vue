@@ -4,6 +4,15 @@
       <span class="subprocess-icon">▱</span>
       <span class="subprocess-label">{{ label }}</span>
     </div>
+    <!-- Expand/Collapse button for subprocesses with internal elements -->
+    <button
+      v-if="hasInternalElements"
+      class="expand-collapse-btn"
+      :title="isExpanded ? 'Collapse' : 'Expand'"
+      @click.stop="onToggleExpand"
+    >
+      {{ isExpanded ? '−' : '+' }}
+    </button>
     <div v-if="triggeredByEvent" class="event-indicator" title="Event Sub Process">⚡</div>
     <Handle
       type="target"
@@ -28,13 +37,26 @@ import type { NodeProps } from '@vue-flow/core'
 interface SubProcessNodeData {
   label: string
   triggeredByEvent?: boolean
+  isExpanded?: boolean
+  internalNodes?: any[]
+  internalEdges?: any[]
 }
 
 const props = defineProps<NodeProps<SubProcessNodeData>>()
 
+const emit = defineEmits<{
+  toggleExpand: [nodeId: string]
+}>()
+
 const label = computed(() => props.data?.label || 'Sub Process')
 
 const triggeredByEvent = computed(() => props.data?.triggeredByEvent === true)
+
+const isExpanded = computed(() => props.data?.isExpanded === true)
+
+const hasInternalElements = computed(() =>
+  props.data?.internalNodes && props.data.internalNodes.length > 0
+)
 
 const nodeStyle = computed(() => ({
   width: `${props.data?.width || 100}px`,
@@ -45,6 +67,10 @@ const handleId = (type: string) => `${props.id}-${type}`
 
 // For selected state
 const selected = computed(() => props.selected)
+
+const onToggleExpand = () => {
+  emit('toggleExpand', props.id)
+}
 </script>
 
 <style scoped>
@@ -93,6 +119,31 @@ const selected = computed(() => props.selected)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.expand-collapse-btn {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 20px;
+  height: 20px;
+  background: #27ae60;
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.expand-collapse-btn:hover {
+  background: #229954;
+  transform: scale(1.1);
 }
 
 .event-indicator {

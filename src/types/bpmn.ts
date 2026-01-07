@@ -113,6 +113,11 @@ export interface BpmnEdgeData {
   label?: string
   name?: string
   documentation?: string
+  // BPMN ID for round-trip conversion (stores original BPMN sequence flow ID)
+  bpmnId?: string
+  // BPMN DI path information for preserving edge layout
+  waypoints?: Array<{ x: number; y: number }>
+  path?: string  // SVG path d attribute (computed from waypoints)
 }
 
 export interface BpmnNode {

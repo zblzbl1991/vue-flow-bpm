@@ -145,4 +145,87 @@ describe('bpmn-importer', () => {
       expect(result).toBeDefined()
     })
   })
+
+  describe('BPMN DI waypoint extraction', () => {
+    it('extracts edge waypoints from BPMN DI', async () => {
+      const bpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC">
+  <process id="test-process">
+    <startEvent id="start" />
+    <endEvent id="end" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="end" />
+  </process>
+  <bpmndi:BPMNDiagram id="diagram">
+    <bpmndi:BPMNPlane id="plane" bpmnElement="test-process">
+      <bpmndi:BPMNShape id="shape-start" bpmnElement="start">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-end" bpmnElement="end">
+        <dc:Bounds x="300" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-flow1" bpmnElement="flow1">
+        <di:waypoint x="136" y="118" />
+        <di:waypoint x="300" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`
+
+      const result = await importBpmnXml(bpmnXml)
+
+      if (result.success && result.workflow) {
+        const edge = result.workflow.edges.find(e => e.id === 'flow1')
+        expect(edge).toBeDefined()
+        expect(edge?.data.waypoints).toBeDefined()
+        expect(edge?.data.waypoints).toHaveLength(2)
+        expect(edge?.data.waypoints?.[0]).toEqual({ x: 136, y: 118 })
+        expect(edge?.data.waypoints?.[1]).toEqual({ x: 300, y: 118 })
+        expect(edge?.data.path).toBe('M 136 118 L 300 118')
+      } else {
+        throw new Error('Import failed')
+      }
+    })
+
+    it('extracts multi-segment edge waypoints', async () => {
+      const bpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC">
+  <process id="test-process">
+    <startEvent id="start" />
+    <endEvent id="end" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="end" />
+  </process>
+  <bpmndi:BPMNDiagram id="diagram">
+    <bpmndi:BPMNPlane id="plane" bpmnElement="test-process">
+      <bpmndi:BPMNShape id="shape-start" bpmnElement="start">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-end" bpmnElement="end">
+        <dc:Bounds x="300" y="200" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-flow1" bpmnElement="flow1">
+        <di:waypoint x="136" y="118" />
+        <di:waypoint x="136" y="218" />
+        <di:waypoint x="300" y="218" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`
+
+      const result = await importBpmnXml(bpmnXml)
+
+      if (result.success && result.workflow) {
+        const edge = result.workflow.edges.find(e => e.id === 'flow1')
+        expect(edge?.data.waypoints).toHaveLength(3)
+        expect(edge?.data.path).toBe('M 136 118 L 136 218 L 300 218')
+      } else {
+        throw new Error('Import failed')
+      }
+    })
+  })
 })

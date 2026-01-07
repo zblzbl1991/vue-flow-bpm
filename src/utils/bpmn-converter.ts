@@ -262,7 +262,8 @@ function convertEdgeToSequenceFlow(edge: BpmnEdge, nodes: BpmnNode[]): any {
     throw new Error(`Invalid edge: source ${edge.source} or target ${edge.target} not found`)
   }
 
-  const flowId = generateFlowId(edge.id)
+  // Use original BPMN ID if available for round-trip compatibility
+  const flowId = edge.data.bpmnId || generateFlowId(edge.id)
   const flow: any = {
     '@id': flowId,
     '@sourceRef': sourceNode.data.bpmnId || generateBpmnId(edge.source),
@@ -375,6 +376,23 @@ export function generateBpmnXml(workflow: BpmnWorkflow): string {
             }
           }),
           'bpmndi:BPMNEdge': edges.map(edge => {
+            const edgeData = edge.data || {}
+            // Use original BPMN ID if available for round-trip compatibility
+            const bpmnElementId = edgeData.bpmnId || generateFlowId(edge.id)
+
+            // If edge has stored waypoints from original import, preserve them
+            if (edgeData.waypoints && edgeData.waypoints.length >= 2) {
+              return {
+                '@id': `edge-${edge.id}`,
+                '@bpmnElement': bpmnElementId,
+                'di:waypoint': edgeData.waypoints.map((wp: { x: number; y: number }) => ({
+                  '@x': wp.x,
+                  '@y': wp.y
+                }))
+              }
+            }
+
+            // Otherwise, calculate simple start-end path (for user-created edges)
             const sourceNode = nodes.find(n => n.id === edge.source)
             const targetNode = nodes.find(n => n.id === edge.target)
 
@@ -385,7 +403,7 @@ export function generateBpmnXml(workflow: BpmnWorkflow): string {
 
             return {
               '@id': `edge-${edge.id}`,
-              '@bpmnElement': generateFlowId(edge.id),
+              '@bpmnElement': bpmnElementId,
               'di:waypoint': [
                 { '@x': sourceX, '@y': sourceY },
                 { '@x': targetX, '@y': targetY }
@@ -425,7 +443,8 @@ export function validateWorkflow(nodes: BpmnNode[], edges: BpmnEdge[]): { valid:
 
   const isolatedNodes = nodes.filter(n => !connectedNodeIds.has(n.id))
   if (isolatedNodes.length > 0) {
-    errors.push(`Isolated nodes found: ${isolatedNodes.map(n => n.data.label || n.id).join(', ')}`)
+    const isolatedInfo = isolatedNodes.map(n => `${n.type} (${n.id}${n.data.label ? ` - "${n.data.label}"` : ''})`).join(', ')
+    errors.push(`Isolated nodes found: ${isolatedInfo}`)
   }
 
   // Check for self-loops

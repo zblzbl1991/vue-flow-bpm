@@ -8,7 +8,7 @@
 - [e.g., TypeScript, React, Node.js]
 
 ## Project Conventions
-
+- 所有的测试文件都应该生成到 bpm-test 目录下
 ### Code Style
 [Describe your code style preferences, formatting rules, and naming conventions]
 

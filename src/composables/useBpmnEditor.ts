@@ -239,6 +239,107 @@ export function useBpmnEditor() {
     }
   }
 
+  // Toggle subProcess expand/collapse
+  const toggleExpandSubProcess = (nodeId: string) => {
+    const subProcessNode = nodes.value.find(n => n.id === nodeId)
+    if (!subProcessNode || subProcessNode.type !== 'subProcess') {
+      return
+    }
+
+    const currentExpanded = (subProcessNode.data as any).isExpanded === true
+    const internalNodes = (subProcessNode.data as any).internalNodes || []
+    const internalEdges = (subProcessNode.data as any).internalEdges || []
+    const internalStartEvent = (subProcessNode.data as any).internalStartEvent
+    const internalEndEvent = (subProcessNode.data as any).internalEndEvent
+
+    if (!currentExpanded) {
+      // Expand: add internal nodes and edges
+      if (internalNodes.length > 0) {
+        nodes.value.push(...internalNodes.map(n => ({ ...n })))
+      }
+      if (internalEdges.length > 0) {
+        edges.value.push(...internalEdges.map(e => ({ ...e })))
+      }
+
+      // Redirect edges to/from subProcess to internal start/end events
+      if (internalStartEvent && internalEndEvent) {
+        // Find edges that connect to this subProcess
+        const edgesToSubProcess = edges.value.filter(e => e.target === nodeId)
+        const edgesFromSubProcess = edges.value.filter(e => e.source === nodeId)
+
+        // Remove old edges
+        edges.value = edges.value.filter(e => e.target !== nodeId && e.source !== nodeId)
+
+        // Add redirected edges
+        edgesToSubProcess.forEach(e => {
+          edges.value.push({
+            ...e,
+            id: generateEdgeId(),
+            target: internalStartEvent,
+            source: e.source
+          })
+        })
+
+        edgesFromSubProcess.forEach(e => {
+          edges.value.push({
+            ...e,
+            id: generateEdgeId(),
+            source: internalEndEvent,
+            target: e.target
+          })
+        })
+      }
+
+      // Mark as expanded
+      ;(subProcessNode.data as any).isExpanded = true
+    } else {
+      // Collapse: remove internal nodes and edges, but keep data in subProcess node
+      const internalNodeIds = internalNodes.map(n => n.id)
+      const internalEdgeIds = internalEdges.map(e => e.id)
+
+      // Remove internal nodes
+      nodes.value = nodes.value.filter(n => !internalNodeIds.includes(n.id))
+
+      // Remove internal edges
+      edges.value = edges.value.filter(e => !internalEdgeIds.includes(e.id))
+
+      // Restore edges to/from subProcess
+      if (internalStartEvent && internalEndEvent) {
+        // Find edges that connect to internal start/end events
+        const edgesToStartEvent = edges.value.filter(e => e.target === internalStartEvent)
+        const edgesFromEndEvent = edges.value.filter(e => e.source === internalEndEvent)
+
+        // Remove redirected edges
+        edges.value = edges.value.filter(e =>
+          e.target !== internalStartEvent &&
+          e.source !== internalEndEvent
+        )
+
+        // Add original edges back
+        edgesToStartEvent.forEach(e => {
+          edges.value.push({
+            ...e,
+            id: generateEdgeId(),
+            target: nodeId,
+            source: e.source
+          })
+        })
+
+        edgesFromEndEvent.forEach(e => {
+          edges.value.push({
+            ...e,
+            id: generateEdgeId(),
+            source: nodeId,
+            target: e.target
+          })
+        })
+      }
+
+      // Mark as collapsed
+      ;(subProcessNode.data as any).isExpanded = false
+    }
+  }
+
   return {
     nodes,
     edges,
@@ -262,6 +363,7 @@ export function useBpmnEditor() {
     isValidId,
     isUniqueId,
     updateNodeId,
-    deleteSelected
+    deleteSelected,
+    toggleExpandSubProcess
   }
 }

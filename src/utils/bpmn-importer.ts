@@ -23,6 +23,7 @@ const BPMN_TYPE_MAPPING: Record<string, BpmnElementType> = {
   'bpmn:EndEvent': 'endEvent',
   'bpmn:UserTask': 'userTask',
   'bpmn:ServiceTask': 'serviceTask',
+  'bpmn:ManualTask': 'serviceTask', // Treat manualTask as serviceTask
   'bpmn:ExclusiveGateway': 'exclusiveGateway',
   'bpmn:ParallelGateway': 'parallelGateway',
   'bpmn:SubProcess': 'subProcess',
@@ -53,13 +54,15 @@ export interface BpmnImportResult {
 }
 
 /**
- * BPMN DI information for node positioning
+ * BPMN DI information for node positioning and edge routing
  */
 interface DiInfo {
   id: string
   bpmnElement: string
   bounds?: { x: number; y: number; width: number; height: number }
   isExpanded?: boolean
+  // For edges, store waypoints for precise path rendering
+  waypoints?: Array<{ x: number; y: number }>
 }
 
 /**
@@ -130,7 +133,7 @@ export async function importBpmnXml(xml: string): Promise<BpmnImportResult> {
     nodes.push(...boundaryNodes)
 
     // Convert sequence flows to vue-flow edges with redirection
-    const edges = convertSequenceFlowsToEdges(sequenceFlows, subProcessInfoMap)
+    const edges = convertSequenceFlowsToEdges(sequenceFlows, subProcessInfoMap, diInfos)
 
     // Build workflow
     const workflow: BpmnWorkflow = {
@@ -171,6 +174,7 @@ export async function importBpmnXml(xml: string): Promise<BpmnImportResult> {
 
 /**
  * Extract BPMN DI information from definitions
+ * Extracts node bounds for positioning and edge waypoints for precise path rendering
  */
 function extractDiInfo(definitions: any): Map<string, DiInfo> {
   const diMap = new Map<string, DiInfo>()
@@ -180,7 +184,14 @@ function extractDiInfo(definitions: any): Map<string, DiInfo> {
     const plane = diagram.plane
     if (!plane) return
 
-    const shapes = plane.shapes || []
+    // bpmn-moddle stores DI elements in planeElement array
+    // We need to filter them by type
+    const planeElements = plane.planeElement || []
+
+    // Extract shapes (node positions and dimensions)
+    const shapes = planeElements.filter((el: any) =>
+      el.$type && el.$type.includes('BPMNShape')
+    )
     shapes.forEach((shape: any) => {
       const bounds = shape.bounds
       const isExpanded = shape.isExpanded === true
@@ -197,12 +208,21 @@ function extractDiInfo(definitions: any): Map<string, DiInfo> {
       })
     })
 
-    const edges = plane.edges || []
+    // Extract edges with waypoints for precise path rendering
+    const edges = planeElements.filter((el: any) =>
+      el.$type && el.$type.includes('BPMNEdge')
+    )
     edges.forEach((edge: any) => {
-      // Could store edge DI info if needed for waypoints
+      const waypoints = edge.waypoint || []
+      const parsedWaypoints = waypoints.map((wp: any) => ({
+        x: wp.x,
+        y: wp.y
+      }))
+
       diMap.set(edge.bpmnElement?.id, {
         id: edge.id,
-        bpmnElement: edge.bpmnElement?.id
+        bpmnElement: edge.bpmnElement?.id,
+        waypoints: parsedWaypoints.length > 0 ? parsedWaypoints : undefined
       })
     })
   })
@@ -255,11 +275,8 @@ function extractFlowElements(
       const diInfo = diInfos.get(element.id)
       const isExpanded = diInfo?.isExpanded === true
 
-      // Always expand subProcesses to show internal content
-      if (true || isExpanded) {
-        if (!isExpanded) {
-          warnings.push(`SubProcess "${element.name || element.id}" is marked as collapsed but will be expanded for editing`)
-        }
+      // Expand subProcess if DI indicates it's expanded
+      if (isExpanded) {
 
         // Get subProcess boundary info (from main diagram)
         const subProcessBounds = diInfo?.bounds
@@ -324,8 +341,60 @@ function extractFlowElements(
           _bounds: subProcessBounds
         })
       } else {
-        // Collapsed subProcess: treat as a single node
-        flowNodes.push(element)
+        // Collapsed subProcess: treat as a single node, but store internal elements for later expansion
+        const subProcessBounds = diInfo?.bounds
+        const subProcessOffset = subProcessBounds
+          ? { x: subProcessBounds.x, y: subProcessBounds.y }
+          : { x: 0, y: 0 }
+
+        // Extract internal elements for potential expansion
+        const subFlowElements = element.flowElements || []
+        const internalNodes: any[] = []
+        const internalFlows: any[] = []
+        const internalDiInfos = new Map<string, DiInfo>()
+
+        // Find start/end events for redirection
+        subFlowElements.forEach((subElement: any) => {
+          if (subElement.$type === 'bpmn:StartEvent') {
+            subProcessStartEvents.set(element.id, subElement.id)
+          } else if (subElement.$type === 'bpmn:EndEvent') {
+            subProcessEndEvents.set(element.id, subElement.id)
+          }
+        })
+
+        // Extract internal elements
+        subFlowElements.forEach((subElement: any) => {
+          if (subElement.$type === 'bpmn:SequenceFlow') {
+            const sourceRefId = subElement.sourceRef?.id || subElement.sourceRef
+            const targetRefId = subElement.targetRef?.id || subElement.targetRef
+            internalFlows.push({
+              ...subElement,
+              _parentSubProcessId: element.id,
+              _subProcessOwnerId: element.id,
+              _sourceRefId: sourceRefId,
+              _targetRefId: targetRefId
+            })
+          } else if (SUPPORTED_ELEMENT_TYPES.has(subElement.$type)) {
+            internalNodes.push({
+              ...subElement,
+              _parentSubProcessId: element.id,
+              _originalPosition: undefined,
+              _subProcessOffset: subProcessOffset
+            })
+          }
+        })
+
+        // Store collapsed subProcess with embedded internal data
+        flowNodes.push({
+          ...element,
+          _isCollapsed: true,
+          _internalNodes: internalNodes,
+          _internalFlows: internalFlows,
+          _internalStart: subProcessStartEvents.get(element.id),
+          _internalEnd: subProcessEndEvents.get(element.id),
+          _bounds: subProcessBounds,
+          _subProcessOffset: subProcessOffset
+        })
       }
     } else if (SUPPORTED_ELEMENT_TYPES.has(element.$type)) {
       // Add parent subProcess reference for non-subProcess nodes
@@ -384,6 +453,60 @@ function convertFlowNodesToNodes(flowNodes: any[], diInfos: Map<string, DiInfo>)
 
     // Store original BPMN ID for round-trip
     ;(data as any).bpmnId = element.id
+
+    // For collapsed subProcess, store internal elements for potential expansion
+    if (element._isCollapsed && (element._internalNodes || element._internalFlows)) {
+      // Convert internal nodes and store them
+      const internalNodesData = element._internalNodes?.map((internalNode: any) => {
+        const internalType = BPMN_TYPE_MAPPING[internalNode.$type]
+        if (!internalType) return null
+
+        const internalDiInfo = diInfos.get(internalNode.id)
+        const internalPosition = internalDiInfo?.bounds
+          ? { x: internalDiInfo.bounds.x, y: internalDiInfo.bounds.y }
+          : { x: 0, y: 0 }
+
+        const internalData: BpmnNodeData = {
+          label: internalNode.name || internalType,
+          width: internalDiInfo?.bounds?.width || getDefaultWidth(internalType),
+          height: internalDiInfo?.bounds?.height || getDefaultHeight(internalType),
+          documentation: internalNode.documentation
+        }
+
+        extractNodeProperties(internalNode, internalData, internalType)
+        ;(internalData as any).bpmnId = internalNode.id
+
+        return {
+          id: internalNode.id,
+          type: internalType,
+          position: internalPosition,
+          data: internalData
+        }
+      }).filter((n: any) => n !== null)
+
+      // Convert internal flows and store them
+      const internalEdgesData = element._internalFlows?.map((internalFlow: any) => {
+        const flowData: BpmnEdgeData = {
+          label: internalFlow.name,
+          condition: internalFlow.conditionExpression?.body
+        }
+        ;(flowData as any).bpmnId = internalFlow.id
+
+        return {
+          id: internalFlow.id,
+          source: internalFlow._sourceRefId,
+          target: internalFlow._targetRefId,
+          data: flowData
+        }
+      }).filter((e: any) => e !== null)
+
+      // Store in node data
+      ;(data as any).isExpanded = false
+      ;(data as any).internalNodes = internalNodesData
+      ;(data as any).internalEdges = internalEdgesData
+      ;(data as any).internalStartEvent = element._internalStart
+      ;(data as any).internalEndEvent = element._internalEnd
+    }
 
     return {
       id: element.id,
@@ -639,10 +762,12 @@ function parseCandidateStarterGroups(process: any): string[] | undefined {
 /**
  * Convert BPMN sequence flows to vue-flow edges
  * Handles redirection for flows connecting to/from expanded subProcesses
+ * Extracts waypoints from DI information for precise edge rendering
  */
 function convertSequenceFlowsToEdges(
   sequenceFlows: any[],
-  subProcessInfoMap: Map<string, { internalStart?: string; internalEnd?: string; bounds?: any }>
+  subProcessInfoMap: Map<string, { internalStart?: string; internalEnd?: string; bounds?: any }>,
+  diInfos: Map<string, DiInfo>
 ): BpmnEdge[] {
   return sequenceFlows.map(flow => {
     // In bpmn-moddle, sourceRef and targetRef can be:
@@ -690,6 +815,16 @@ function convertSequenceFlowsToEdges(
       data.condition = flow.conditionExpression.body || flow.conditionExpression.text || ''
     }
 
+    // Extract waypoints from DI information for precise path rendering
+    const diInfo = diInfos.get(flow.id)
+    if (diInfo?.waypoints && diInfo.waypoints.length >= 2) {
+      data.waypoints = diInfo.waypoints
+      data.path = waypointsToSvgPath(diInfo.waypoints)
+    }
+
+    // Store original BPMN ID for round-trip compatibility
+    ;(data as any).bpmnId = flow.id
+
     return {
       id: flow.id,
       source: sourceId,
@@ -699,6 +834,24 @@ function convertSequenceFlowsToEdges(
       animated: false
     }
   })
+}
+
+/**
+ * Convert BPMN waypoints to SVG path string
+ * @param waypoints - Array of waypoint coordinates
+ * @returns SVG path d attribute string
+ */
+function waypointsToSvgPath(waypoints: Array<{ x: number; y: number }>): string {
+  if (waypoints.length === 0) return ''
+
+  const [first, ...rest] = waypoints
+  let d = `M ${first.x} ${first.y}`
+
+  for (const wp of rest) {
+    d += ` L ${wp.x} ${wp.y}`
+  }
+
+  return d
 }
 
 /**
@@ -776,7 +929,8 @@ function validateImportedWorkflow(nodes: BpmnNode[], edges: BpmnEdge[]): { valid
 
   const isolatedNodes = nodes.filter(n => !connectedNodeIds.has(n.id))
   if (isolatedNodes.length > 0) {
-    warnings.push(`Isolated nodes found: ${isolatedNodes.map(n => n.data.label || n.id).join(', ')}`)
+    const isolatedInfo = isolatedNodes.map(n => `${n.type} (${n.id}${n.data.label ? ` - "${n.data.label}"` : ''})`).join(', ')
+    warnings.push(`Isolated nodes found: ${isolatedInfo}`)
   }
 
   // Check for self-loops

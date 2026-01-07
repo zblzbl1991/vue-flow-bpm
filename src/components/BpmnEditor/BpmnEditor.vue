@@ -10,11 +10,13 @@
         v-model:nodes="nodes"
         v-model:edges="edges"
         :node-types="nodeTypes"
+        :edge-types="edgeTypes"
         :default-viewport="{ zoom: 1, x: 0, y: 0 }"
         :min-zoom="0.25"
         :max-zoom="2"
         fit-view-on-init
         @node-click="onNodeClick"
+        @node:toggle-expand="onToggleExpand"
         @edge-click="onEdgeClick"
         @connect="onConnect"
         @drop="onDrop"
@@ -121,6 +123,7 @@ import ExclusiveGateway from '@/components/nodes/ExclusiveGateway.vue'
 import ParallelGateway from '@/components/nodes/ParallelGateway.vue'
 import SubProcess from '@/components/nodes/SubProcess.vue'
 import SubProcessBoundary from '@/components/nodes/SubProcessBoundary.vue'
+import BpmnEdge from '@/components/edges/BpmnEdge.vue'
 import ControlPanel from './ControlPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import PreviewModal from './PreviewModal.vue'
@@ -144,6 +147,10 @@ const nodeTypes = {
   subProcessBoundary: markRaw(SubProcessBoundary)
 }
 
+const edgeTypes = {
+  default: markRaw(BpmnEdge)
+}
+
 const {
   nodes,
   edges,
@@ -161,7 +168,8 @@ const {
   clearAll,
   loadFromJson,
   exportToJson,
-  deleteSelected
+  deleteSelected,
+  toggleExpandSubProcess
 } = useBpmnEditor()
 
 const { validateAndConvert, downloadBpmnFile } = useBpmnConverter()
@@ -218,6 +226,10 @@ const onEdgeClick = (_event: any, edge: Edge) => {
   if (!edge) return
   selectEdge(edge.id)
   contextMenuVisible.value = false
+}
+
+const onToggleExpand = (_event: any, nodeId: string) => {
+  toggleExpandSubProcess(nodeId)
 }
 
 // Handle right-click on canvas
@@ -356,7 +368,12 @@ const onValidate = () => {
     generatedBpmnXml.value = result.xml
     showBpmnPreviewPanel.value = true
   } else {
-    alert(`Validation failed:\n${result.errors?.join('\n') || 'Unknown error'}`)
+    const errorMsg = `Validation failed:\n${result.errors?.join('\n') || 'Unknown error'}`
+    // Output to console for easy copying
+    console.error('=== BPMN Validation Error ===')
+    console.error(result.errors?.join('\n') || 'Unknown error')
+    console.error('==============================')
+    alert(errorMsg)
   }
 }
 
