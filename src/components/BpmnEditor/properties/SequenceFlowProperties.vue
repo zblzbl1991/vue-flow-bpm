@@ -12,7 +12,21 @@
       />
     </div>
 
-    <div class="property-row">
+    <!-- Condition Type Selection -->
+    <div v-if="isGatewayFlow" class="property-row">
+      <label>Condition Type</label>
+      <select
+        :value="data.conditionType || 'expression'"
+        @change="updateProperty('conditionType', $event)"
+      >
+        <option value="expression">Expression</option>
+        <option value="script">Script</option>
+      </select>
+      <small>Choose how to evaluate the condition</small>
+    </div>
+
+    <!-- Condition Expression (for type: expression) -->
+    <div v-if="!data.conditionType || data.conditionType === 'expression'" class="property-row">
       <label>Condition Expression</label>
       <textarea
         :value="data.condition || ''"
@@ -20,7 +34,45 @@
         placeholder="${approved == true}"
         rows="3"
       />
-      <small>Condition expression for gateway flows</small>
+      <small>UEL expression for gateway flows</small>
+    </div>
+
+    <!-- Condition Script (for type: script) -->
+    <div v-if="data.conditionType === 'script'" class="property-row">
+      <label>Script Format</label>
+      <select
+        :value="data.conditionScriptFormat || ''"
+        @change="updateProperty('conditionScriptFormat', $event)"
+      >
+        <option value="">Select script language...</option>
+        <option value="groovy">Groovy</option>
+        <option value="javascript">JavaScript</option>
+        <option value="python">Python</option>
+      </select>
+    </div>
+
+    <div v-if="data.conditionType === 'script'" class="property-row">
+      <label>Condition Script</label>
+      <textarea
+        :value="data.conditionScript || ''"
+        @input="updateProperty('conditionScript', $event)"
+        placeholder="// Return true or false"
+        rows="5"
+        class="script-editor"
+      />
+      <small>Script that returns boolean value</small>
+    </div>
+
+    <!-- Skip Expression -->
+    <div class="property-row">
+      <label>Skip Expression</label>
+      <input
+        type="text"
+        :value="data.skipExpression || ''"
+        @input="updateProperty('skipExpression', $event)"
+        placeholder="${skipThisFlow}"
+      />
+      <small>Boolean expression to skip this flow</small>
     </div>
 
     <div class="property-row">
@@ -91,7 +143,8 @@ const setAsDefault = () => {
 }
 
 .property-row input[type="text"],
-.property-row textarea {
+.property-row textarea,
+.property-row select {
   padding: 8px 10px;
   border: 1px solid #ced4da;
   border-radius: 4px;
@@ -101,9 +154,17 @@ const setAsDefault = () => {
 }
 
 .property-row input:focus,
-.property-row textarea:focus {
+.property-row textarea:focus,
+.property-row select:focus {
   outline: none;
   border-color: #3498db;
+}
+
+.script-editor {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  resize: vertical;
 }
 
 .property-row small {

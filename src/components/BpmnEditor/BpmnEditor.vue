@@ -122,6 +122,28 @@ import ExclusiveGateway from '@/components/nodes/ExclusiveGateway.vue'
 import ParallelGateway from '@/components/nodes/ParallelGateway.vue'
 import SubProcess from '@/components/nodes/SubProcess.vue'
 import SubProcessBoundary from '@/components/nodes/SubProcessBoundary.vue'
+// Intermediate events
+import IntermediateTimerEvent from '@/components/nodes/IntermediateTimerEvent.vue'
+import IntermediateMessageEvent from '@/components/nodes/IntermediateMessageEvent.vue'
+import IntermediateSignalEvent from '@/components/nodes/IntermediateSignalEvent.vue'
+// Boundary events
+import BoundaryErrorEvent from '@/components/nodes/BoundaryErrorEvent.vue'
+import BoundaryTimerEvent from '@/components/nodes/BoundaryTimerEvent.vue'
+import BoundaryMessageEvent from '@/components/nodes/BoundaryMessageEvent.vue'
+import BoundarySignalEvent from '@/components/nodes/BoundarySignalEvent.vue'
+// Additional task types
+import ScriptTask from '@/components/nodes/ScriptTask.vue'
+import BusinessRuleTask from '@/components/nodes/BusinessRuleTask.vue'
+import ManualTask from '@/components/nodes/ManualTask.vue'
+import ReceiveTask from '@/components/nodes/ReceiveTask.vue'
+import SendTask from '@/components/nodes/SendTask.vue'
+// Additional gateway types
+import InclusiveGateway from '@/components/nodes/InclusiveGateway.vue'
+import EventGateway from '@/components/nodes/EventGateway.vue'
+// Other elements
+import CallActivity from '@/components/nodes/CallActivity.vue'
+import EventSubProcess from '@/components/nodes/EventSubProcess.vue'
+// Edge
 import BpmnEdge from '@/components/edges/BpmnEdge.vue'
 import ControlPanel from './ControlPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
@@ -136,6 +158,7 @@ import type { BpmnElementType, BpmnWorkflow } from '@/types/bpmn'
 import type { NotificationType } from './ImportNotification.vue'
 
 const nodeTypes = {
+  // Original node types
   startEvent: markRaw(StartEvent),
   endEvent: markRaw(EndEvent),
   userTask: markRaw(UserTask),
@@ -143,7 +166,28 @@ const nodeTypes = {
   exclusiveGateway: markRaw(ExclusiveGateway),
   parallelGateway: markRaw(ParallelGateway),
   subProcess: markRaw(SubProcess),
-  subProcessBoundary: markRaw(SubProcessBoundary)
+  subProcessBoundary: markRaw(SubProcessBoundary),
+  // Intermediate events
+  intermediateTimerEvent: markRaw(IntermediateTimerEvent),
+  intermediateMessageEvent: markRaw(IntermediateMessageEvent),
+  intermediateSignalEvent: markRaw(IntermediateSignalEvent),
+  // Boundary events
+  boundaryErrorEvent: markRaw(BoundaryErrorEvent),
+  boundaryTimerEvent: markRaw(BoundaryTimerEvent),
+  boundaryMessageEvent: markRaw(BoundaryMessageEvent),
+  boundarySignalEvent: markRaw(BoundarySignalEvent),
+  // Additional task types
+  scriptTask: markRaw(ScriptTask),
+  businessRuleTask: markRaw(BusinessRuleTask),
+  manualTask: markRaw(ManualTask),
+  receiveTask: markRaw(ReceiveTask),
+  sendTask: markRaw(SendTask),
+  // Additional gateway types
+  inclusiveGateway: markRaw(InclusiveGateway),
+  eventGateway: markRaw(EventGateway),
+  // Other elements
+  callActivity: markRaw(CallActivity),
+  eventSubProcess: markRaw(EventSubProcess)
 }
 
 const edgeTypes = {

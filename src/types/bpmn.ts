@@ -98,6 +98,26 @@ export interface BpmnNodeData {
   messageRef?: string
   signalRef?: string
   errorCode?: string
+  escalationCode?: string
+  eventSubProcess?: boolean
+
+  // Script task properties
+  scriptFormat?: string
+  script?: string
+
+  // Business rule task properties
+  ruleVariablesInput?: string
+  rules?: string
+  resultVariable?: string
+
+  // Call activity properties
+  calledElement?: string
+  inheritVariables?: boolean
+  variableMapping?: Parameter[]
+
+  // Boundary event properties
+  attachedToRef?: string
+  cancelActivity?: boolean
 
   // Extended configurations
   listeners?: Listener[]
@@ -136,6 +156,12 @@ export interface BpmnEdgeData {
   waypoints?: Array<{ x: number; y: number }>
   // SVG path d attribute (computed from waypoints for rendering)
   path?: string
+  // Condition type (expression or script)
+  conditionType?: 'expression' | 'script'
+  conditionScriptFormat?: string
+  conditionScript?: string
+  // Skip expression for sequence flow
+  skipExpression?: string
 }
 
 export interface BpmnNode {
@@ -164,6 +190,27 @@ export type BpmnElementType =
   | 'parallelGateway'
   | 'subProcess'
   | 'subProcessBoundary'
+  // Intermediate events
+  | 'intermediateTimerEvent'
+  | 'intermediateMessageEvent'
+  | 'intermediateSignalEvent'
+  // Boundary events
+  | 'boundaryErrorEvent'
+  | 'boundaryTimerEvent'
+  | 'boundaryMessageEvent'
+  | 'boundarySignalEvent'
+  // Additional task types
+  | 'scriptTask'
+  | 'businessRuleTask'
+  | 'manualTask'
+  | 'receiveTask'
+  | 'sendTask'
+  // Additional gateway types
+  | 'inclusiveGateway'
+  | 'eventGateway'
+  // Other elements
+  | 'callActivity'
+  | 'eventSubProcess'
 
 export interface BpmnProcess {
   id: string
@@ -243,6 +290,123 @@ export const BPMN_ELEMENT_CONFIGS: Record<BpmnElementType, BpmnElementConfig> = 
     label: 'Sub Process Boundary',
     icon: '▭',
     description: 'Expanded sub-process boundary',
+    defaultSize: { width: 400, height: 300 }
+  },
+  // Intermediate events
+  intermediateTimerEvent: {
+    type: 'intermediateTimerEvent',
+    label: 'Intermediate Timer Event',
+    icon: '⏱',
+    description: 'Timer-based intermediate catch event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  intermediateMessageEvent: {
+    type: 'intermediateMessageEvent',
+    label: 'Intermediate Message Event',
+    icon: '✉',
+    description: 'Message-based intermediate event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  intermediateSignalEvent: {
+    type: 'intermediateSignalEvent',
+    label: 'Intermediate Signal Event',
+    icon: '📡',
+    description: 'Signal-based intermediate event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  // Boundary events
+  boundaryErrorEvent: {
+    type: 'boundaryErrorEvent',
+    label: 'Boundary Error Event',
+    icon: '⚠',
+    description: 'Error boundary event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  boundaryTimerEvent: {
+    type: 'boundaryTimerEvent',
+    label: 'Boundary Timer Event',
+    icon: '⏲',
+    description: 'Timer boundary event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  boundaryMessageEvent: {
+    type: 'boundaryMessageEvent',
+    label: 'Boundary Message Event',
+    icon: '✉',
+    description: 'Message boundary event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  boundarySignalEvent: {
+    type: 'boundarySignalEvent',
+    label: 'Boundary Signal Event',
+    icon: '📡',
+    description: 'Signal boundary event',
+    defaultSize: { width: 50, height: 50 }
+  },
+  // Additional task types
+  scriptTask: {
+    type: 'scriptTask',
+    label: 'Script Task',
+    icon: '📜',
+    description: 'Task that executes a script',
+    defaultSize: { width: 120, height: 80 }
+  },
+  businessRuleTask: {
+    type: 'businessRuleTask',
+    label: 'Business Rule Task',
+    icon: '📋',
+    description: 'Task that evaluates business rules',
+    defaultSize: { width: 120, height: 80 }
+  },
+  manualTask: {
+    type: 'manualTask',
+    label: 'Manual Task',
+    icon: '✋',
+    description: 'Task performed manually without system execution',
+    defaultSize: { width: 120, height: 80 }
+  },
+  receiveTask: {
+    type: 'receiveTask',
+    label: 'Receive Task',
+    icon: '📥',
+    description: 'Task that waits for a message',
+    defaultSize: { width: 120, height: 80 }
+  },
+  sendTask: {
+    type: 'sendTask',
+    label: 'Send Task',
+    icon: '📤',
+    description: 'Task that sends a message',
+    defaultSize: { width: 120, height: 80 }
+  },
+  // Additional gateway types
+  inclusiveGateway: {
+    type: 'inclusiveGateway',
+    label: 'Inclusive Gateway',
+    icon: '◑',
+    description: 'Inclusive decision gateway',
+    defaultSize: { width: 60, height: 60 }
+  },
+  eventGateway: {
+    type: 'eventGateway',
+    label: 'Event Gateway',
+    icon: '⬡',
+    description: 'Event-based gateway',
+    defaultSize: { width: 60, height: 60 }
+  },
+  // Other elements
+  callActivity: {
+    type: 'callActivity',
+    label: 'Call Activity',
+    icon: '🔄',
+    description: 'Calls another process',
+    defaultSize: { width: 120, height: 80 }
+  },
+  eventSubProcess: {
+    type: 'eventSubProcess',
+    label: 'Event Sub-process',
+    icon: '📦',
+    description: 'Event-triggered sub-process',
     defaultSize: { width: 400, height: 300 }
   }
 }

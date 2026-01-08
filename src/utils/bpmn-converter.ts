@@ -11,12 +11,37 @@ const BPMN_NAMESPACES = {
 }
 
 const NODE_TYPE_MAPPING: Record<BpmnElementType, string> = {
+  // Original types
   startEvent: 'bpmn:startEvent',
   endEvent: 'bpmn:endEvent',
   userTask: 'bpmn:userTask',
   serviceTask: 'bpmn:serviceTask',
   exclusiveGateway: 'bpmn:exclusiveGateway',
-  parallelGateway: 'bpmn:parallelGateway'
+  parallelGateway: 'bpmn:parallelGateway',
+  // New task types
+  manualTask: 'bpmn:manualTask',
+  scriptTask: 'bpmn:scriptTask',
+  businessRuleTask: 'bpmn:businessRuleTask',
+  receiveTask: 'bpmn:receiveTask',
+  sendTask: 'bpmn:sendTask',
+  // New gateway types
+  inclusiveGateway: 'bpmn:inclusiveGateway',
+  eventGateway: 'bpmn:eventBasedGateway',
+  // Sub-processes
+  subProcess: 'bpmn:subProcess',
+  subProcessBoundary: 'bpmn:subProcess',
+  eventSubProcess: 'bpmn:subProcess',
+  // Intermediate events
+  intermediateTimerEvent: 'bpmn:intermediateCatchEvent',
+  intermediateMessageEvent: 'bpmn:intermediateCatchEvent',
+  intermediateSignalEvent: 'bpmn:intermediateCatchEvent',
+  // Boundary events
+  boundaryErrorEvent: 'bpmn:boundaryEvent',
+  boundaryTimerEvent: 'bpmn:boundaryEvent',
+  boundaryMessageEvent: 'bpmn:boundaryEvent',
+  boundarySignalEvent: 'bpmn:boundaryEvent',
+  // Call activity
+  callActivity: 'bpmn:callActivity'
 }
 
 function generateBpmnId(originalId: string, prefix: string = 'bpmn'): string {
@@ -218,8 +243,238 @@ function convertNodeToBpmnElement(node: BpmnNode): any {
   }
 
   // Gateway default flow
-  if ((node.type === 'exclusiveGateway' || node.type === 'parallelGateway') && node.data.default) {
+  if ((node.type === 'exclusiveGateway' || node.type === 'parallelGateway' || node.type === 'inclusiveGateway') && node.data.default) {
     element['@default'] = generateFlowId(node.data.default)
+  }
+
+  // New task types
+  if (node.type === 'scriptTask') {
+    if (node.data.scriptFormat) {
+      extensionElements.push({ 'flowable:scriptFormat': node.data.scriptFormat })
+    }
+    if (node.data.script) {
+      extensionElements.push({ 'flowable:script': node.data.script })
+    }
+    if (node.data.autoStoreVariables !== undefined) {
+      extensionElements.push({ 'flowable:autoStoreVariables': node.data.autoStoreVariables.toString() })
+    }
+
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+  }
+
+  if (node.type === 'businessRuleTask') {
+    if (node.data.rules) {
+      extensionElements.push({ 'flowable:rules': node.data.rules })
+    }
+    if (node.data.ruleVariablesInput) {
+      extensionElements.push({ 'flowable:ruleVariablesInput': node.data.ruleVariablesInput })
+    }
+    if (node.data.resultVariable) {
+      extensionElements.push({ 'flowable:resultVariable': node.data.resultVariable })
+    }
+    if (node.data.exclude !== undefined) {
+      extensionElements.push({ 'flowable:exclude': node.data.exclude.toString() })
+    }
+
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+
+    // Input/output parameters
+    const inputParams = convertParametersToXml(node.data.inputParameters || [], 'input')
+    if (inputParams) {
+      extensionElements.push(...inputParams)
+    }
+    const outputParams = convertParametersToXml(node.data.outputParameters || [], 'output')
+    if (outputParams) {
+      extensionElements.push(...outputParams)
+    }
+  }
+
+  if (node.type === 'receiveTask' || node.type === 'sendTask') {
+    if (node.data.messageRef) {
+      element['@messageRef'] = node.data.messageRef
+    }
+
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+
+    // Multi-instance
+    if (node.data.multiInstance) {
+      const multiInstanceXml = convertMultiInstanceToXml(node.data.multiInstance)
+      extensionElements.push(multiInstanceXml)
+    }
+  }
+
+  if (node.type === 'receiveTask') {
+    // Input/output parameters for receive task
+    const inputParams = convertParametersToXml(node.data.inputParameters || [], 'input')
+    if (inputParams) {
+      extensionElements.push(...inputParams)
+    }
+    const outputParams = convertParametersToXml(node.data.outputParameters || [], 'output')
+    if (outputParams) {
+      extensionElements.push(...outputParams)
+    }
+  }
+
+  if (node.type === 'sendTask') {
+    // Input/output parameters for send task
+    const inputParams = convertParametersToXml(node.data.inputParameters || [], 'input')
+    if (inputParams) {
+      extensionElements.push(...inputParams)
+    }
+    const outputParams = convertParametersToXml(node.data.outputParameters || [], 'output')
+    if (outputParams) {
+      extensionElements.push(...outputParams)
+    }
+  }
+
+  if (node.type === 'manualTask') {
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+
+    // Multi-instance
+    if (node.data.multiInstance) {
+      const multiInstanceXml = convertMultiInstanceToXml(node.data.multiInstance)
+      extensionElements.push(multiInstanceXml)
+    }
+  }
+
+  if (node.type === 'callActivity') {
+    if (node.data.calledElement) {
+      element['@calledElement'] = node.data.calledElement
+    }
+    if (node.data.inheritVariables !== undefined) {
+      extensionElements.push({ 'flowable:inheritVariables': node.data.inheritVariables.toString() })
+    }
+    if (node.data.businessKey) {
+      extensionElements.push({ 'flowable:businessKey': node.data.businessKey })
+    }
+
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+
+    // Multi-instance
+    if (node.data.multiInstance) {
+      const multiInstanceXml = convertMultiInstanceToXml(node.data.multiInstance)
+      extensionElements.push(multiInstanceXml)
+    }
+
+    // Input/output parameters
+    const inputParams = convertParametersToXml(node.data.inputParameters || [], 'input')
+    if (inputParams) {
+      extensionElements.push(...inputParams)
+    }
+    const outputParams = convertParametersToXml(node.data.outputParameters || [], 'output')
+    if (outputParams) {
+      extensionElements.push(...outputParams)
+    }
+  }
+
+  // Event gateway special properties
+  if (node.type === 'eventGateway') {
+    if (node.data.instantiate !== undefined) {
+      element['@instantiate'] = node.data.instantiate.toString()
+    }
+    if (node.data.eventGatewayType) {
+      element['@eventGatewayType'] = node.data.eventGatewayType
+    }
+  }
+
+  // Intermediate events
+  if (node.type === 'intermediateTimerEvent') {
+    element['bpmn:timerEventDefinition'] = createTimerEventDefinition(node.data)
+  }
+
+  if (node.type === 'intermediateMessageEvent') {
+    element['bpmn:messageEventDefinition'] = createMessageEventDefinition(node.data)
+  }
+
+  if (node.type === 'intermediateSignalEvent') {
+    element['bpmn:signalEventDefinition'] = createSignalEventDefinition(node.data)
+  }
+
+  // Boundary events
+  if (node.type === 'boundaryErrorEvent') {
+    element['bpmn:errorEventDefinition'] = createErrorEventDefinition(node.data)
+    if (node.data.cancelActivity !== undefined) {
+      element['@cancelActivity'] = node.data.cancelActivity.toString()
+    } else {
+      element['@cancelActivity'] = 'true' // Default for error events
+    }
+    if (node.data.attachedToRef) {
+      element['@attachedToRef'] = node.data.attachedToRef
+    }
+  }
+
+  if (node.type === 'boundaryTimerEvent') {
+    element['bpmn:timerEventDefinition'] = createTimerEventDefinition(node.data)
+    if (node.data.cancelActivity !== undefined) {
+      element['@cancelActivity'] = node.data.cancelActivity.toString()
+    }
+    if (node.data.attachedToRef) {
+      element['@attachedToRef'] = node.data.attachedToRef
+    }
+  }
+
+  if (node.type === 'boundaryMessageEvent') {
+    element['bpmn:messageEventDefinition'] = createMessageEventDefinition(node.data)
+    if (node.data.cancelActivity !== undefined) {
+      element['@cancelActivity'] = node.data.cancelActivity.toString()
+    } else {
+      element['@cancelActivity'] = 'true' // Default for message events
+    }
+    if (node.data.attachedToRef) {
+      element['@attachedToRef'] = node.data.attachedToRef
+    }
+  }
+
+  if (node.type === 'boundarySignalEvent') {
+    element['bpmn:signalEventDefinition'] = createSignalEventDefinition(node.data)
+    if (node.data.cancelActivity !== undefined) {
+      element['@cancelActivity'] = node.data.cancelActivity.toString()
+    } else {
+      element['@cancelActivity'] = 'true' // Default for signal events
+    }
+    if (node.data.attachedToRef) {
+      element['@attachedToRef'] = node.data.attachedToRef
+    }
+  }
+
+  // Event sub-process
+  if (node.type === 'eventSubProcess') {
+    element['@triggeredByEvent'] = 'true'
+    if (node.data.async !== undefined) {
+      extensionElements.push({ 'flowable:async': node.data.async.toString() })
+    }
+
+    // Execution listeners
+    const execListeners = convertListenersToListeners(node.data.listeners, false)
+    if (execListeners) {
+      extensionElements.push(...execListeners)
+    }
+
+    // Multi-instance
+    if (node.data.multiInstance) {
+      const multiInstanceXml = convertMultiInstanceToXml(node.data.multiInstance)
+      extensionElements.push(multiInstanceXml)
+    }
   }
 
   // Async attributes - add as Flowable extension elements
@@ -482,4 +737,57 @@ export function validateWorkflow(nodes: BpmnNode[], edges: BpmnEdge[]): { valid:
     valid: errors.length === 0,
     errors
   }
+}
+
+// Event definition creation functions
+function createTimerEventDefinition(data: any): any {
+  const definition: any = {}
+
+  if (data.timerType && data.timerExpression) {
+    if (data.timerType === 'duration') {
+      definition['@xsi:type'] = 'bpmn:tFormalExpression'
+      definition['#'] = data.timerExpression
+    } else if (data.timerType === 'date') {
+      definition['@xsi:type'] = 'bpmn:tFormalExpression'
+      definition['#'] = data.timerExpression
+    } else if (data.timerType === 'cycle') {
+      definition['@xsi:type'] = 'bpmn:tFormalExpression'
+      definition['#'] = data.timerExpression
+    }
+  }
+
+  return definition
+}
+
+function createMessageEventDefinition(data: any): any {
+  const definition: any = {}
+
+  if (data.messageRef) {
+    definition['@id'] = `messageDef-${data.messageRef}`
+    definition['@messageRef'] = data.messageRef
+  }
+
+  return definition
+}
+
+function createSignalEventDefinition(data: any): any {
+  const definition: any = {}
+
+  if (data.signalRef) {
+    definition['@id'] = `signalDef-${data.signalRef}`
+    definition['@signalRef'] = data.signalRef
+  }
+
+  return definition
+}
+
+function createErrorEventDefinition(data: any): any {
+  const definition: any = {}
+
+  if (data.errorCode) {
+    definition['@id'] = `errorDef-${data.errorCode}`
+    definition['@errorCode'] = data.errorCode
+  }
+
+  return definition
 }

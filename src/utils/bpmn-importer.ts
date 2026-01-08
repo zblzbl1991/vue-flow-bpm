@@ -19,15 +19,31 @@ import type {
 // BPMN 2.0 element type to vue-flow type mapping
 // Note: bpmn-moddle uses PascalCase for types (e.g., bpmn:StartEvent)
 const BPMN_TYPE_MAPPING: Record<string, BpmnElementType> = {
+  // Original types
   'bpmn:StartEvent': 'startEvent',
   'bpmn:EndEvent': 'endEvent',
   'bpmn:UserTask': 'userTask',
   'bpmn:ServiceTask': 'serviceTask',
-  'bpmn:ManualTask': 'serviceTask', // Treat manualTask as serviceTask
+  'bpmn:ManualTask': 'manualTask',
   'bpmn:ExclusiveGateway': 'exclusiveGateway',
   'bpmn:ParallelGateway': 'parallelGateway',
+  'bpmn:InclusiveGateway': 'inclusiveGateway',
+  'bpmn:EventBasedGateway': 'eventGateway',
   'bpmn:SubProcess': 'subProcess',
-  'bpmn:SubProcess:Boundary': 'subProcessBoundary'
+  'bpmn:SubProcess:Boundary': 'subProcessBoundary',
+  // Intermediate events
+  'bpmn:IntermediateCatchEvent': 'intermediateTimerEvent', // Default to timer, will be refined by eventDefinition
+  'bpmn:IntermediateThrowEvent': 'intermediateSignalEvent', // Default to signal
+  // Boundary events
+  'bpmn:BoundaryEvent': 'boundaryErrorEvent', // Default to error, will be refined by eventDefinition
+  // Additional task types
+  'bpmn:ScriptTask': 'scriptTask',
+  'bpmn:BusinessRuleTask': 'businessRuleTask',
+  'bpmn:ReceiveTask': 'receiveTask',
+  'bpmn:SendTask': 'sendTask',
+  'bpmn:CallActivity': 'callActivity',
+  // Event sub-process
+  'bpmn:SubProcess:Event': 'eventSubProcess'
 }
 
 // Supported BPMN element types
@@ -408,16 +424,53 @@ function extractFlowElements(
 }
 
 /**
+ * Get refined event type based on event definitions
+ */
+function getRefinedEventType(element: any, baseType: BpmnElementType): BpmnElementType {
+  const eventDefinitions = element.eventDefinitions || []
+
+  if (eventDefinitions.length === 0) {
+    return baseType
+  }
+
+  const eventDef = eventDefinitions[0]
+  const eventType = eventDef.$type?.toLowerCase() || ''
+
+  // Handle intermediate catch events
+  if (baseType === 'intermediateTimerEvent') {
+    if (eventType.includes('timer')) return 'intermediateTimerEvent'
+    if (eventType.includes('message')) return 'intermediateMessageEvent'
+    if (eventType.includes('signal')) return 'intermediateSignalEvent'
+    if (eventType.includes('conditional')) return 'intermediateTimerEvent' // Fallback
+  }
+
+  // Handle boundary events
+  if (baseType === 'boundaryErrorEvent') {
+    if (eventType.includes('error')) return 'boundaryErrorEvent'
+    if (eventType.includes('timer')) return 'boundaryTimerEvent'
+    if (eventType.includes('message')) return 'boundaryMessageEvent'
+    if (eventType.includes('signal')) return 'boundarySignalEvent'
+    if (eventType.includes('conditional')) return 'boundaryTimerEvent' // Fallback
+    if (eventType.includes('compensate')) return 'boundaryErrorEvent' // Fallback
+  }
+
+  return baseType
+}
+
+/**
  * Convert BPMN flow nodes to vue-flow nodes
  */
 function convertFlowNodesToNodes(flowNodes: any[], diInfos: Map<string, DiInfo>): BpmnNode[] {
   return flowNodes.map((element, index) => {
     const elementType = element.$type
-    const vueFlowType = BPMN_TYPE_MAPPING[elementType]
+    let vueFlowType = BPMN_TYPE_MAPPING[elementType]
 
     if (!vueFlowType) {
       throw new Error(`Unsupported element type: ${elementType}`)
     }
+
+    // Refine event type based on event definitions
+    vueFlowType = getRefinedEventType(element, vueFlowType)
 
     // Get DI information for positioning
     const diInfo = diInfos.get(element.id)
@@ -597,6 +650,111 @@ function extractNodeProperties(element: any, data: BpmnNodeData, nodeType: BpmnE
       // For collapsed subProcesses, we just store basic info
       // Expanded subProcesses would need more complex handling
       data.triggeredByEvent = element.triggeredByEvent === true
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+      }
+      break
+
+    // New task types
+    case 'scriptTask':
+      data.scriptFormat = element.scriptFormat
+      data.script = element.script
+      data.autoStoreVariables = element.autoStoreVariables
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+      }
+      break
+
+    case 'businessRuleTask':
+      data.rules = element.rules
+      data.ruleVariablesInput = element.ruleVariablesInput
+      data.resultVariable = element.resultVariable
+      data.exclude = element.exclude
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+        data.inputParameters = extractParameters(extensionElements, 'input')
+        data.outputParameters = extractParameters(extensionElements, 'output')
+      }
+      break
+
+    case 'receiveTask':
+      data.messageRef = element.messageRef
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+      }
+      break
+
+    case 'sendTask':
+      // Send task uses messageRef but in a different way
+      // It could have extension elements for additional configuration
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+        data.inputParameters = extractParameters(extensionElements, 'input')
+        data.outputParameters = extractParameters(extensionElements, 'output')
+      }
+      break
+
+    case 'manualTask':
+      // Manual task is simpler, but can still have some properties
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+      }
+      break
+
+    case 'callActivity':
+      data.calledElement = element.calledElement
+      data.inheritVariables = element.inheritVariables
+      data.businessKey = element.businessKey
+      if (extensionElements) {
+        data.listeners = extractListeners(extensionElements, false)
+        data.multiInstance = extractMultiInstance(extensionElements)
+        data.inputParameters = extractParameters(extensionElements, 'input')
+        data.outputParameters = extractParameters(extensionElements, 'output')
+      }
+      break
+
+    // New gateway types
+    case 'inclusiveGateway':
+      data.default = element.default?.id || element.default
+      break
+
+    case 'eventGateway':
+      // Event gateway has special properties
+      data.instantiate = element.instantiate
+      data.eventGatewayType = element.eventGatewayType
+      break
+
+    // Intermediate events
+    case 'intermediateTimerEvent':
+    case 'intermediateMessageEvent':
+    case 'intermediateSignalEvent':
+    case 'boundaryErrorEvent':
+    case 'boundaryTimerEvent':
+    case 'boundaryMessageEvent':
+    case 'boundarySignalEvent':
+      // Event properties
+      if (extensionElements) {
+        extractEventProperties(extensionElements, data)
+      }
+      // For boundary events, extract cancelActivity
+      if (element.cancelActivity !== undefined) {
+        data.cancelActivity = element.cancelActivity
+      }
+      // For boundary events, store attachedToRef
+      if (element.attachedToRef) {
+        data.attachedToRef = element.attachedToRef.id || element.attachedToRef
+      }
+      break
+
+    case 'eventSubProcess':
+      data.triggeredByEvent = element.triggeredByEvent === true
+      data.async = element.async
       if (extensionElements) {
         data.listeners = extractListeners(extensionElements, false)
         data.multiInstance = extractMultiInstance(extensionElements)

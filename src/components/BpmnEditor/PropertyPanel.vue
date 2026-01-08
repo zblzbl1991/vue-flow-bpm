@@ -31,42 +31,93 @@
             @update="onUpdateNode"
           />
 
+          <!-- User Task Properties -->
           <UserTaskProperties
             v-if="selectedNode.type === 'userTask'"
             :data="selectedNode.data"
             @update="onUpdateNode"
           />
 
+          <!-- Service Task Properties -->
           <ServiceTaskProperties
             v-if="selectedNode.type === 'serviceTask'"
             :data="selectedNode.data"
             @update="onUpdateNode"
           />
 
+          <!-- Script Task Properties -->
+          <ScriptTaskProperties
+            v-if="selectedNode.type === 'scriptTask'"
+            :data="selectedNode.data"
+            @update="onUpdateNode"
+          />
+
+          <!-- Business Rule Task Properties -->
+          <BusinessRuleTaskProperties
+            v-if="selectedNode.type === 'businessRuleTask'"
+            :data="selectedNode.data"
+            @update="onUpdateNode"
+          />
+
+          <!-- Call Activity Properties -->
+          <CallActivityProperties
+            v-if="selectedNode.type === 'callActivity'"
+            :data="selectedNode.data"
+            @update="onUpdateNode"
+          />
+
+          <!-- Gateway Properties (all gateway types) -->
           <GatewayProperties
-            v-if="selectedNode.type === 'exclusiveGateway' || selectedNode.type === 'parallelGateway'"
+            v-if="selectedNode.type.includes('Gateway')"
             :data="selectedNode.data"
             :outgoing-flows="getOutgoingFlows(selectedNode.id)"
             @update="onUpdateNode"
           />
 
+          <!-- Event Properties -->
           <EventProperties
-            v-if="selectedNode.type === 'startEvent' || selectedNode.type === 'endEvent'"
+            v-if="selectedNode.type.includes('Event')"
             :data="selectedNode.data"
-            :is-timer-event="false"
+            :is-timer-event="selectedNode.type.includes('Timer')"
+            :is-message-event="selectedNode.type.includes('Message')"
+            :is-signal-event="selectedNode.type.includes('Signal')"
+            :is-error-event="selectedNode.type.includes('Error')"
+            :is-boundary-event="selectedNode.type.startsWith('boundary')"
+            @update="onUpdateNode"
+          />
+
+          <!-- Priority and Due Date for user tasks -->
+          <PriorityConfig
+            v-if="selectedNode.type === 'userTask'"
+            :data="selectedNode.data"
             @update="onUpdateNode"
           />
         </div>
 
         <!-- Advanced Tab -->
         <div v-show="activeTab === 'advanced'" class="tab-pane">
+          <!-- Async Configuration -->
+          <AsyncConfig
+            v-if="['userTask', 'serviceTask', 'scriptTask', 'manualTask', 'receiveTask', 'sendTask', 'businessRuleTask', 'callActivity', 'subProcess', 'eventSubProcess'].includes(selectedNode.type)"
+            :data="selectedNode.data"
+            @update="onUpdateNode"
+          />
+
+          <!-- Skip Expression -->
+          <SkipConfig
+            v-if="['userTask', 'serviceTask', 'scriptTask', 'manualTask', 'receiveTask', 'sendTask', 'businessRuleTask', 'callActivity'].includes(selectedNode.type)"
+            :data="selectedNode.data"
+            @update="onUpdateNode"
+          />
+
+          <!-- Multi Instance -->
           <MultiInstanceConfig
-            v-if="selectedNode.type === 'userTask' || selectedNode.type === 'serviceTask'"
+            v-if="['userTask', 'serviceTask', 'scriptTask', 'manualTask', 'receiveTask', 'sendTask', 'businessRuleTask', 'callActivity'].includes(selectedNode.type)"
             :config="selectedNode.data.multiInstance"
             @update="onUpdateNodeMultiInstance"
           />
 
-          <div v-if="!(selectedNode.type === 'userTask' || selectedNode.type === 'serviceTask')" class="no-properties">
+          <div v-if="!['userTask', 'serviceTask', 'scriptTask', 'manualTask', 'receiveTask', 'sendTask', 'businessRuleTask', 'callActivity', 'subProcess', 'eventSubProcess'].includes(selectedNode.type)" class="no-properties">
             <p>No advanced properties available for this element type.</p>
           </div>
         </div>
@@ -75,7 +126,7 @@
         <div v-show="activeTab === 'listeners'" class="tab-pane">
           <ListenerConfig
             :listeners="selectedNode.data.listeners"
-            :is-task-listener="selectedNode.type === 'userTask'"
+            :is-task-listener="['userTask', 'manualTask', 'receiveTask'].includes(selectedNode.type)"
             @update="onUpdateListeners"
           />
         </div>
@@ -92,17 +143,17 @@
           </div>
         </div>
 
-        <!-- Parameters Tab (for service tasks) -->
+        <!-- Parameters Tab (for service tasks and other types) -->
         <div v-show="activeTab === 'parameters'" class="tab-pane">
           <ParametersConfig
-            v-if="selectedNode.type === 'serviceTask'"
+            v-if="['serviceTask', 'businessRuleTask', 'receiveTask', 'sendTask', 'callActivity'].includes(selectedNode.type)"
             :input-parameters="selectedNode.data.inputParameters"
             :output-parameters="selectedNode.data.outputParameters"
             @update-input="onUpdateInputParameters"
             @update-output="onUpdateOutputParameters"
           />
           <div v-else class="no-properties">
-            <p>Input/output parameters are only available for service tasks.</p>
+            <p>Input/output parameters are not available for this element type.</p>
           </div>
         </div>
       </div>
@@ -169,6 +220,13 @@ import ListenerConfig from './properties/ListenerConfig.vue'
 import MultiInstanceConfig from './properties/MultiInstanceConfig.vue'
 import FormPropertiesConfig from './properties/FormPropertiesConfig.vue'
 import ParametersConfig from './properties/ParametersConfig.vue'
+// New property components
+import AsyncConfig from './properties/AsyncConfig.vue'
+import SkipConfig from './properties/SkipConfig.vue'
+import PriorityConfig from './properties/PriorityConfig.vue'
+import ScriptTaskProperties from './properties/ScriptTaskProperties.vue'
+import BusinessRuleTaskProperties from './properties/BusinessRuleTaskProperties.vue'
+import CallActivityProperties from './properties/CallActivityProperties.vue'
 
 const props = defineProps<{
   selectedNode: BpmnNode | null
@@ -198,10 +256,14 @@ interface PropertyTab {
 
 const propertyTabs: PropertyTab[] = [
   { id: 'basic', label: 'Basic', available: () => true },
-  { id: 'advanced', label: 'Advanced', available: (type) => ['userTask', 'serviceTask'].includes(type) },
+  {
+    id: 'advanced',
+    label: 'Advanced',
+    available: (type) => ['userTask', 'serviceTask', 'scriptTask', 'manualTask', 'receiveTask', 'sendTask', 'businessRuleTask', 'callActivity', 'subProcess', 'eventSubProcess'].includes(type)
+  },
   { id: 'listeners', label: 'Listeners', available: () => true },
   { id: 'form', label: 'Form', available: (type) => type === 'userTask' },
-  { id: 'parameters', label: 'Parameters', available: (type) => type === 'serviceTask' }
+  { id: 'parameters', label: 'Parameters', available: (type) => ['serviceTask', 'businessRuleTask', 'receiveTask', 'sendTask', 'callActivity'].includes(type) }
 ]
 
 const getAvailableTabs = () => {
@@ -223,7 +285,7 @@ const getOutgoingFlows = (nodeId: string) => {
 
 const isGatewayFlow = (edge: BpmnEdge) => {
   const sourceNode = props.allNodes.find(n => n.id === edge.source)
-  return sourceNode?.type === 'exclusiveGateway' || sourceNode?.type === 'parallelGateway'
+  return sourceNode?.type === 'exclusiveGateway' || sourceNode?.type === 'parallelGateway' || sourceNode?.type === 'inclusiveGateway' || sourceNode?.type === 'eventGateway'
 }
 
 const onUpdateProcess = (key: string, value: any) => {

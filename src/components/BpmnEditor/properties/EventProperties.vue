@@ -103,6 +103,33 @@
       />
       <small class="hint">Error code to catch</small>
     </div>
+
+    <!-- Boundary Event Properties -->
+    <div v-if="isBoundaryEvent" class="property-row">
+      <label>Cancel Activity</label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          :checked="data.cancelActivity !== false"
+          @change="updateProperty('cancelActivity', $event.target.checked)"
+        />
+        <span>Cancel the associated activity when triggered</span>
+      </label>
+      <small class="hint">If checked, the activity is cancelled when the boundary event triggers</small>
+    </div>
+
+    <!-- Escalation Event Properties -->
+    <div v-if="isEscalationEvent" class="property-row">
+      <label>Escalation Code</label>
+      <input
+        type="text"
+        :value="data.escalationCode || ''"
+        @input="updateProperty('escalationCode', $event)"
+        placeholder="ESCALATION_CODE"
+        class="input-field"
+      />
+      <small class="hint">Escalation code to throw</small>
+    </div>
   </div>
 </template>
 
@@ -115,15 +142,21 @@ const props = defineProps<{
   isMessageEvent?: boolean
   isSignalEvent?: boolean
   isErrorEvent?: boolean
+  isBoundaryEvent?: boolean
+  isEscalationEvent?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update', key: string, value: any): void
 }>()
 
-const updateProperty = (key: string, event: Event) => {
-  const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  emit('update', key, target.value)
+const updateProperty = (key: string, event: Event | boolean) => {
+  if (typeof event === 'boolean') {
+    emit('update', key, event)
+  } else {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    emit('update', key, target.value)
+  }
 }
 
 const getTimerPlaceholder = () => {
